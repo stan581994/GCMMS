@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
-import { mockMembers, mockHouseholds, mockUsers } from '@/data/mock'
+import { mockMembers, mockHouseholds } from '@/data/mock'
 import type { Member, Household, AppUser, MemberStatus, UserRole } from '@/types'
 import { supabase } from '@/lib/supabase'
 

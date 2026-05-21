@@ -1,3 +1,6 @@
+-- Add email column (not in original table migration which is already on prod)
+alter table app_users add column if not exists email text;
+
 -- SECURITY DEFINER helper: check if the caller is an admin without going through RLS
 create or replace function is_admin()
 returns boolean
@@ -9,11 +12,6 @@ as $$
     select 1 from app_users where id = auth.uid() and role = 'admin'
   )
 $$;
-
--- Allow admins to read all user profiles (regular users still see only their own)
-create policy "Admins can read all profiles"
-  on app_users for select
-  using (is_admin() or auth.uid() = id);
 
 -- Allow admins to update any user profile (role changes, deactivate/reactivate)
 create policy "Admins can update profiles"
@@ -41,6 +39,10 @@ declare
 begin
   if not is_admin() then
     raise exception 'Unauthorized: admin role required';
+  end if;
+
+  if p_role not in ('account_specialist', 'clerk', 'ministering') then
+    raise exception 'Invalid role: must be account_specialist, clerk, or ministering';
   end if;
 
   insert into auth.users (

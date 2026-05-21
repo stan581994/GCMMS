@@ -45,7 +45,7 @@ export function Members() {
         const matchSearch =
           !q ||
           `${m.first_name} ${m.last_name}`.toLowerCase().includes(q) ||
-          (m.phone ?? '').includes(q)
+          (m.assigned_to ?? '').toLowerCase().includes(q)
         const matchStatus = statusFilter === 'all' || m.status === statusFilter
         const matchHousehold = householdFilter === 'all' || m.household_id === householdFilter
         return matchSearch && matchStatus && matchHousehold
@@ -102,7 +102,7 @@ export function Members() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search by name or phone…"
+            placeholder="Search by name or assigned person…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
@@ -155,7 +155,7 @@ export function Members() {
               >
                 Household <SortIcon col="household" />
               </TableHead>
-              <TableHead>Phone</TableHead>
+              <TableHead>Assigned Person</TableHead>
               <TableHead
                 className="cursor-pointer select-none"
                 onClick={() => toggleSort('status')}
@@ -188,7 +188,7 @@ export function Members() {
                     {m.first_name} {m.last_name}
                   </TableCell>
                   <TableCell>{householdMap[m.household_id]}</TableCell>
-                  <TableCell className="text-muted-foreground">{m.phone ?? '—'}</TableCell>
+                  <TableCell className="text-muted-foreground">{m.assigned_to ?? '—'}</TableCell>
                   <TableCell>
                     <StatusBadge status={m.status} />
                   </TableCell>
@@ -216,7 +216,7 @@ export function Members() {
                   {m.first_name} {m.last_name}
                 </p>
                 <p className="truncate text-xs text-muted-foreground">
-                  {householdMap[m.household_id]} · {m.phone ?? 'No phone'}
+                  {householdMap[m.household_id]} · {m.assigned_to ?? 'Unassigned'}
                 </p>
                 <p className="text-xs text-muted-foreground">{formatDate(m.updated_at)}</p>
               </div>

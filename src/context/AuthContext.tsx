@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import type { AppUser } from '@/types'
-import { mockUsers } from '@/data/mock'
+import { supabase } from '@/lib/supabase'
 
 const SESSION_KEY = 'gcmms_session'
 
@@ -14,6 +14,17 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
+
+async function fetchProfile(userId: string): Promise<AppUser | null> {
+  console.log('[fetchProfile] querying app_users for', userId)
+  const { data, error } = await supabase
+    .from('app_users')
+    .select('*')
+    .eq('id', userId)
+    .single()
+  console.log('[fetchProfile] result', { data, error })
+  return data ?? null
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<AppUser | null>(null)
@@ -38,8 +49,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setCurrentUser(user)
       localStorage.setItem(SESSION_KEY, JSON.stringify(user))
       return true
+    } catch (err) {
+      console.error('[login] caught exception', err)
+      return false
     }
-    return false
   }
 
   const logout = () => {

@@ -2,10 +2,13 @@ import React, { createContext, useContext, useState, useEffect } from 'react'
 import type { AppUser } from '@/types'
 import { supabase } from '@/lib/supabase'
 
+const SESSION_KEY = 'gcmms_session'
+
 interface AuthContextType {
   currentUser: AppUser | null
   isAuthenticated: boolean
-  login: (email: string, password: string) => Promise<boolean>
+  initializing: boolean
+  login: (email: string, _password: string) => Promise<boolean>
   logout: () => void
   switchRole: (userId: string) => void
 }
@@ -25,50 +28,26 @@ async function fetchProfile(userId: string): Promise<AppUser | null> {
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<AppUser | null>(null)
+  const [initializing, setInitializing] = useState(true)
 
   useEffect(() => {
-    // Restore session on page load
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        const profile = await fetchProfile(session.user.id)
-        if (profile) setCurrentUser({ ...profile, email: session.user.email! })
+    try {
+      const raw = localStorage.getItem(SESSION_KEY)
+      if (raw) {
+        const saved: AppUser = JSON.parse(raw)
+        setCurrentUser(saved)
       }
-    })
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('[onAuthStateChange]', event, session?.user?.id)
-      if (event === 'SIGNED_OUT' || !session) {
-        setCurrentUser(null)
-      } else if (session?.user) {
-        const profile = await fetchProfile(session.user.id)
-        if (profile) setCurrentUser({ ...profile, email: session.user.email! })
-      }
-    })
-
-    return () => subscription.unsubscribe()
+    } catch {
+      localStorage.removeItem(SESSION_KEY)
+    }
+    setInitializing(false)
   }, [])
 
-  const login = async (email: string, password: string): Promise<boolean> => {
-    try {
-      console.log('[login] calling signInWithPassword...')
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-      console.log('[login] signInWithPassword done', { userId: data?.user?.id, error })
-      if (error || !data.user) {
-        console.error('[login] auth failed', error)
-        return false
-      }
-
-      console.log('[login] fetching profile for', data.user.id)
-      const profile = await fetchProfile(data.user.id)
-      console.log('[login] profile result', profile)
-      if (!profile || !profile.is_active) {
-        console.error('[login] no profile or inactive', { profile })
-        await supabase.auth.signOut()
-        return false
-      }
-
-      console.log('[login] success, setting user')
-      setCurrentUser({ ...profile, email: data.user.email! })
+  const login = async (email: string, _password: string): Promise<boolean> => {
+    const user = mockUsers.find((u) => u.email === email && u.is_active)
+    if (user) {
+      setCurrentUser(user)
+      localStorage.setItem(SESSION_KEY, JSON.stringify(user))
       return true
     } catch (err) {
       console.error('[login] caught exception', err)
@@ -76,22 +55,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const logout = async () => {
-    await supabase.auth.signOut()
+  const logout = () => {
     setCurrentUser(null)
+    localStorage.removeItem(SESSION_KEY)
   }
 
-  const switchRole = async (userId: string) => {
-    const profile = await fetchProfile(userId)
-    if (profile) {
-      const { data: { session } } = await supabase.auth.getSession()
-      setCurrentUser({ ...profile, email: session?.user?.email ?? profile.email })
+  const switchRole = (userId: string) => {
+    const user = mockUsers.find((u) => u.id === userId)
+    if (user) {
+      setCurrentUser(user)
+      localStorage.setItem(SESSION_KEY, JSON.stringify(user))
     }
   }
 
   return (
     <AuthContext.Provider
-      value={{ currentUser, isAuthenticated: currentUser !== null, login, logout, switchRole }}
+      value={{ currentUser, isAuthenticated: currentUser !== null, initializing, login, logout, switchRole }}
     >
       {children}
     </AuthContext.Provider>

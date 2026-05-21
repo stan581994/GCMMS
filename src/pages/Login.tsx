@@ -14,7 +14,7 @@ const hints = [
 ]
 
 export function Login() {
-  const { login, isAuthenticated } = useAuth()
+  const { login, isAuthenticated, isLoading } = useAuth()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -22,8 +22,8 @@ export function Login() {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    if (isAuthenticated) navigate('/dashboard', { replace: true })
-  }, [isAuthenticated, navigate])
+    if (!isLoading && isAuthenticated) navigate('/dashboard', { replace: true })
+  }, [isAuthenticated, isLoading, navigate])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -31,7 +31,9 @@ export function Login() {
     setLoading(true)
     try {
       const ok = await login(email, password)
-      if (!ok) {
+      if (ok) {
+        navigate('/dashboard', { replace: true })
+      } else {
         setError('Invalid email or account not found.')
       }
     } catch (err) {

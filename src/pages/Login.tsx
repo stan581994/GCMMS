@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import { Button } from '@/components/ui/button'
@@ -14,23 +14,31 @@ const hints = [
 ]
 
 export function Login() {
-  const { login } = useAuth()
+  const { login, isAuthenticated } = useAuth()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
+  useEffect(() => {
+    if (isAuthenticated) navigate('/dashboard', { replace: true })
+  }, [isAuthenticated, navigate])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setLoading(true)
-    const ok = await login(email, password)
-    setLoading(false)
-    if (ok) {
-      navigate('/dashboard')
-    } else {
-      setError('Invalid email or account not found.')
+    try {
+      const ok = await login(email, password)
+      if (!ok) {
+        setError('Invalid email or account not found.')
+      }
+    } catch (err) {
+      console.error('[handleSubmit] unexpected error', err)
+      setError('An unexpected error occurred. Please try again.')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -99,7 +107,7 @@ export function Login() {
                 <span className="text-muted-foreground">{h.role}</span>
               </button>
             ))}
-            <p className="mt-2 text-xs text-muted-foreground">Any password accepted.</p>
+            <p className="mt-2 text-xs text-muted-foreground">Password: <span className="font-mono">Ward@2024!</span></p>
           </CardContent>
         </Card>
       </div>

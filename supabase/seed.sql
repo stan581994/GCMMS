@@ -87,8 +87,8 @@ insert into auth.identities (
   );
 
 -- App user profiles
-insert into app_users (id, full_name, role, is_active) values
-  ('b2000000-0000-0000-0000-000000000001', 'Steven', 'admin', true),
-  ('b2000000-0000-0000-0000-000000000002', 'Archie', 'clerk', true),
-  ('b2000000-0000-0000-0000-000000000003', 'Lehi', 'clerk', true),
-  ('b2000000-0000-0000-0000-000000000004', 'Saple', 'ministering', true);
+insert into app_users (id, full_name, email, role, is_active) values
+  ('b2000000-0000-0000-0000-000000000001', 'Steven', 'steven@gcw.org', 'admin', true),
+  ('b2000000-0000-0000-0000-000000000002', 'Archie', 'archie@gcw.org', 'clerk', true),
+  ('b2000000-0000-0000-0000-000000000003', 'Lehi', 'lehi@gcw.org', 'clerk', true),
+  ('b2000000-0000-0000-0000-000000000004', 'Saple', 'saple@gcw.org', 'ministering', true);

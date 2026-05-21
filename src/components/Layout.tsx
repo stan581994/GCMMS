@@ -1,12 +1,21 @@
 import { useState } from 'react'
 import { Outlet, useNavigate } from 'react-router-dom'
-import { Menu, LogOut } from 'lucide-react'
+import { Menu, LogOut, KeyRound } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { Sidebar } from './Sidebar'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 const roleLabels: Record<string, string> = {
   admin: 'Admin',
@@ -25,13 +34,34 @@ function initials(name: string) {
 }
 
 export function Layout() {
-  const { currentUser, logout } = useAuth()
+  const { currentUser, logout, changePassword } = useAuth()
   const navigate = useNavigate()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [pwOpen, setPwOpen] = useState(false)
+  const [newPw, setNewPw] = useState('')
+  const [confirmPw, setConfirmPw] = useState('')
+  const [pwError, setPwError] = useState('')
+  const [pwLoading, setPwLoading] = useState(false)
 
   const handleLogout = () => {
     logout()
     navigate('/login')
+  }
+
+  const handlePwOpenChange = (open: boolean) => {
+    setPwOpen(open)
+    if (!open) { setNewPw(''); setConfirmPw(''); setPwError('') }
+  }
+
+  const handleChangePassword = async () => {
+    if (newPw.length < 6) { setPwError('Password must be at least 6 characters.'); return }
+    if (newPw !== confirmPw) { setPwError('Passwords do not match.'); return }
+    setPwError('')
+    setPwLoading(true)
+    const ok = await changePassword(newPw)
+    setPwLoading(false)
+    if (!ok) { setPwError('Failed to update password. Please try again.'); return }
+    handlePwOpenChange(false)
   }
 
   return (
@@ -72,6 +102,9 @@ export function Layout() {
                 <Badge variant="secondary" className="hidden sm:inline-flex">
                   {roleLabels[currentUser.role]}
                 </Badge>
+                <Button variant="ghost" size="icon" onClick={() => setPwOpen(true)} title="Change password">
+                  <KeyRound className="h-4 w-4" />
+                </Button>
                 <Avatar className="h-8 w-8">
                   <AvatarFallback className="text-xs">
                     {initials(currentUser.full_name)}
@@ -90,6 +123,44 @@ export function Layout() {
           <Outlet />
         </main>
       </div>
+
+      {/* Change Password dialog */}
+      <Dialog open={pwOpen} onOpenChange={handlePwOpenChange}>
+        <DialogContent className="sm:max-w-sm" aria-describedby={undefined}>
+          <DialogHeader>
+            <DialogTitle>Change Password</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label>New Password</Label>
+              <Input
+                type="password"
+                placeholder="Min. 6 characters"
+                value={newPw}
+                onChange={(e) => setNewPw(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Confirm Password</Label>
+              <Input
+                type="password"
+                placeholder="Re-enter new password"
+                value={confirmPw}
+                onChange={(e) => setConfirmPw(e.target.value)}
+              />
+            </div>
+            {pwError && <p className="text-sm text-destructive">{pwError}</p>}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => handlePwOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleChangePassword} disabled={!newPw || !confirmPw || pwLoading}>
+              {pwLoading ? 'Saving…' : 'Save Password'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

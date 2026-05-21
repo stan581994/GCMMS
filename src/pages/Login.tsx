@@ -7,10 +7,10 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 const hints = [
-  { email: 'admin@ward.org', role: 'Admin' },
-  { email: 'specialist@ward.org', role: 'Account Specialist' },
-  { email: 'clerk@ward.org', role: 'Clerk' },
-  { email: 'ministering@ward.org', role: 'Ministering' },
+  { email: 'steven@gcw.org', role: 'Admin' },
+  { email: 'archie@gcw.org', role: 'Clerk' },
+  { email: 'lehi@gcw.org', role: 'Clerk' },
+  { email: 'saple@gcw.org', role: 'Ministering' },
 ]
 
 export function Login() {
@@ -109,7 +109,7 @@ export function Login() {
                 <span className="text-muted-foreground">{h.role}</span>
               </button>
             ))}
-            <p className="mt-2 text-xs text-muted-foreground">Password: <span className="font-mono">Ward@2024!</span></p>
+            <p className="mt-2 text-xs text-muted-foreground">Password: <span className="font-mono">GoldenCity</span></p>
           </CardContent>
         </Card>
       </div>

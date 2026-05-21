@@ -21,7 +21,7 @@ import {
 import { Search, ChevronUp, ChevronDown } from 'lucide-react'
 import type { MemberStatus } from '@/types'
 
-type SortKey = 'name' | 'household' | 'status' | 'updated_at'
+type SortKey = 'name' | 'address' | 'status' | 'updated_at'
 type SortDir = 'asc' | 'desc'
 
 export function Members() {
@@ -33,8 +33,8 @@ export function Members() {
   const [sortKey, setSortKey] = useState<SortKey>('name')
   const [sortDir, setSortDir] = useState<SortDir>('asc')
 
-  const householdMap = useMemo(
-    () => Object.fromEntries(households.map((h) => [h.id, h.name])),
+  const addressMap = useMemo(
+    () => Object.fromEntries(households.map((h) => [h.id, h.address])),
     [households]
   )
 
@@ -55,9 +55,9 @@ export function Members() {
         if (sortKey === 'name') {
           va = `${a.last_name} ${a.first_name}`
           vb = `${b.last_name} ${b.first_name}`
-        } else if (sortKey === 'household') {
-          va = householdMap[a.household_id] ?? ''
-          vb = householdMap[b.household_id] ?? ''
+        } else if (sortKey === 'address') {
+          va = addressMap[a.household_id] ?? ''
+          vb = addressMap[b.household_id] ?? ''
         } else if (sortKey === 'status') {
           va = a.status
           vb = b.status
@@ -67,7 +67,7 @@ export function Members() {
         }
         return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va)
       })
-  }, [members, search, statusFilter, householdFilter, sortKey, sortDir, householdMap])
+  }, [members, search, statusFilter, householdFilter, sortKey, sortDir, addressMap])
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -151,9 +151,9 @@ export function Members() {
               </TableHead>
               <TableHead
                 className="cursor-pointer select-none"
-                onClick={() => toggleSort('household')}
+                onClick={() => toggleSort('address')}
               >
-                Household <SortIcon col="household" />
+                Address <SortIcon col="address" />
               </TableHead>
               <TableHead>Assigned Person</TableHead>
               <TableHead
@@ -187,7 +187,7 @@ export function Members() {
                   <TableCell className="font-medium">
                     {m.first_name} {m.last_name}
                   </TableCell>
-                  <TableCell>{householdMap[m.household_id]}</TableCell>
+                  <TableCell className="text-muted-foreground">{addressMap[m.household_id] ?? '—'}</TableCell>
                   <TableCell className="text-muted-foreground">{m.assigned_to ?? '—'}</TableCell>
                   <TableCell>
                     <StatusBadge status={m.status} />
@@ -216,7 +216,7 @@ export function Members() {
                   {m.first_name} {m.last_name}
                 </p>
                 <p className="truncate text-xs text-muted-foreground">
-                  {householdMap[m.household_id]} · {m.assigned_to ?? 'Unassigned'}
+                  {addressMap[m.household_id] ?? '—'} · {m.assigned_to ?? 'Unassigned'}
                 </p>
                 <p className="text-xs text-muted-foreground">{formatDate(m.updated_at)}</p>
               </div>

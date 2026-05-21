@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
-import { mockMembers, mockHouseholds, mockUsers } from '@/data/mock'
-import type { Member, Household, AppUser, MemberStatus } from '@/types'
+import { mockMembers, mockHouseholds } from '@/data/mock'
+import type { Member, Household, AppUser, MemberStatus, UserRole } from '@/types'
 import { supabase } from '@/lib/supabase'
 
 interface DbMember {
@@ -56,7 +56,7 @@ interface DataContextType {
   updateMember: (id: string, updates: Partial<Member>) => void
   updateHousehold: (id: string, updates: Partial<Household>) => void
   updateUser: (id: string, updates: Partial<AppUser>) => void
-  addUser: (user: AppUser) => void
+  addUser: (name: string, email: string, password: string, role: UserRole) => Promise<{ error: string | null }>
 }
 
 const DataContext = createContext<DataContextType | null>(null)
@@ -64,7 +64,7 @@ const DataContext = createContext<DataContextType | null>(null)
 export function DataProvider({ children }: { children: React.ReactNode }) {
   const [members, setMembers] = useState<Member[]>(mockMembers)
   const [households, setHouseholds] = useState<Household[]>(mockHouseholds)
-  const [users, setUsers] = useState<AppUser[]>(mockUsers)
+  const [users, setUsers] = useState<AppUser[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -72,20 +72,18 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       .from('members')
       .select('*', { count: 'exact' })
       .order('preferred_name')
-      .then(({ data, error, count, status, statusText }) => {
-        console.log('[DataContext] Members — status:', status, statusText, '| count:', count)
+      .then(({ data, error }) => {
         if (error) {
           console.error('[DataContext] Members fetch error:', error)
         } else if (data) {
-          const mapped = (data as DbMember[]).map(mapDbMember)
-          setMembers(mapped)
+          setMembers((data as DbMember[]).map(mapDbMember))
         }
       })
 
     const fetchUsers = supabase
       .from('app_users')
-      .select('id, full_name, role, is_active, created_at')
-      .eq('is_active', true)
+      .select('*')
+      .order('full_name')
       .then(({ data, error }) => {
         if (error) {
           console.error('[DataContext] app_users fetch error:', error)
@@ -110,7 +108,22 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const updateUser = (id: string, updates: Partial<AppUser>) =>
     setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, ...updates } : u)))
 
-  const addUser = (user: AppUser) => setUsers((prev) => [...prev, user])
+  const addUser = async (name: string, email: string, password: string, role: UserRole): Promise<{ error: string | null }> => {
+    const { data, error } = await supabase.rpc('create_managed_user', {
+      p_email: email,
+      p_password: password,
+      p_full_name: name,
+      p_role: role,
+    })
+    if (error) return { error: error.message }
+
+    const created = data as { id: string; email: string }
+    setUsers((prev) => [
+      ...prev,
+      { id: created.id, full_name: name, email, role, is_active: true, created_at: new Date().toISOString() },
+    ])
+    return { error: null }
+  }
 
   return (
     <DataContext.Provider

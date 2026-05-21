@@ -12,4 +12,3 @@ alter table app_users enable row level security;
 create policy "Users can read own profile"
   on app_users for select
   using (auth.uid() = id);
-

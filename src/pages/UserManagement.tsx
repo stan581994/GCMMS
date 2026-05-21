@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useData } from '@/context/DataContext'
+import { useAuth } from '@/context/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -27,7 +28,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { UserPlus } from 'lucide-react'
-import type { AppUser, UserRole } from '@/types'
+import type { UserRole } from '@/types'
 
 const roleLabels: Record<UserRole, string> = {
   admin: 'Admin',
@@ -43,28 +44,43 @@ const roleBadgeClass: Record<UserRole, string> = {
   ministering: 'bg-amber-100 text-amber-800 border-amber-200',
 }
 
+const addableRoles: { value: UserRole; label: string }[] = [
+  { value: 'clerk', label: 'Clerk' },
+  { value: 'ministering', label: 'Ministering' },
+]
+
 export function UserManagement() {
   const { users, addUser } = useData()
+  const { currentUser } = useAuth()
+  const isAdmin = currentUser?.role === 'admin'
   const [inviteOpen, setInviteOpen] = useState(false)
   const [newName, setNewName] = useState('')
   const [newEmail, setNewEmail] = useState('')
-  const [newRole, setNewRole] = useState<UserRole>('ministering')
+  const [newPassword, setNewPassword] = useState('GCMembers')
+  const [newRole, setNewRole] = useState<UserRole>('clerk')
+  const [inviteError, setInviteError] = useState('')
+  const [inviteLoading, setInviteLoading] = useState(false)
 
-  const handleInvite = () => {
+  const handleInvite = async () => {
     if (!newName || !newEmail) return
-    const user: AppUser = {
-      id: `user-${Date.now()}`,
-      full_name: newName,
-      email: newEmail,
-      role: newRole,
-      created_at: new Date().toISOString(),
-      is_active: true,
+    setInviteError('')
+    setInviteLoading(true)
+    const { error } = await addUser(newName, newEmail, newPassword, newRole)
+    setInviteLoading(false)
+    if (error) {
+      setInviteError(error)
+      return
     }
-    addUser(user)
     setInviteOpen(false)
     setNewName('')
     setNewEmail('')
-    setNewRole('ministering')
+    setNewPassword('GCMembers')
+    setNewRole('clerk')
+  }
+
+  const handleInviteOpenChange = (open: boolean) => {
+    setInviteOpen(open)
+    if (!open) { setInviteError(''); setNewPassword('GCMembers') }
   }
 
   const formatDate = (iso: string) =>
@@ -77,10 +93,12 @@ export function UserManagement() {
           <h2 className="text-xl font-bold">User Management</h2>
           <p className="text-sm text-muted-foreground">{users.length} users</p>
         </div>
-        <Button onClick={() => setInviteOpen(true)}>
-          <UserPlus className="mr-2 h-4 w-4" />
-          Add User
-        </Button>
+        {isAdmin && (
+          <Button onClick={() => setInviteOpen(true)}>
+            <UserPlus className="mr-2 h-4 w-4" />
+            Add User
+          </Button>
+        )}
       </div>
 
       {/* Desktop table */}
@@ -93,6 +111,7 @@ export function UserManagement() {
               <TableHead>Role</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Created</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -101,9 +120,21 @@ export function UserManagement() {
                 <TableCell className="font-medium">{u.full_name}</TableCell>
                 <TableCell className="text-muted-foreground">{u.email}</TableCell>
                 <TableCell>
-                  <Badge variant="outline" className={roleBadgeClass[u.role]}>
-                    {roleLabels[u.role]}
-                  </Badge>
+                  <Select
+                    value={u.role}
+                    onValueChange={(v) => updateUser(u.id, { role: v as UserRole })}
+                  >
+                    <SelectTrigger className="h-8 w-40 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(Object.keys(roleLabels) as UserRole[]).map((r) => (
+                        <SelectItem key={r} value={r} className="text-xs">
+                          {roleLabels[r]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </TableCell>
                 <TableCell>
                   <Badge
@@ -114,6 +145,16 @@ export function UserManagement() {
                   </Badge>
                 </TableCell>
                 <TableCell className="text-muted-foreground">{formatDate(u.created_at)}</TableCell>
+                <TableCell>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={u.is_active ? 'text-destructive hover:text-destructive' : ''}
+                    onClick={() => updateUser(u.id, { is_active: !u.is_active })}
+                  >
+                    {u.is_active ? 'Deactivate' : 'Reactivate'}
+                  </Button>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -136,13 +177,38 @@ export function UserManagement() {
                 {roleLabels[u.role]}
               </Badge>
             </div>
+            <div className="mt-3 flex items-center gap-2">
+              <Select
+                value={u.role}
+                onValueChange={(v) => updateUser(u.id, { role: v as UserRole })}
+              >
+                <SelectTrigger className="h-8 flex-1 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(roleLabels) as UserRole[]).map((r) => (
+                    <SelectItem key={r} value={r} className="text-xs">
+                      {roleLabels[r]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                variant={u.is_active ? 'outline' : 'secondary'}
+                size="sm"
+                className={u.is_active ? 'text-destructive border-destructive/30' : ''}
+                onClick={() => updateUser(u.id, { is_active: !u.is_active })}
+              >
+                {u.is_active ? 'Deactivate' : 'Reactivate'}
+              </Button>
+            </div>
           </div>
         ))}
       </div>
 
       {/* Invite dialog */}
-      <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
-        <DialogContent className="sm:max-w-md">
+      <Dialog open={inviteOpen} onOpenChange={handleInviteOpenChange}>
+        <DialogContent className="sm:max-w-md" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>Add New User</DialogTitle>
           </DialogHeader>
@@ -159,9 +225,17 @@ export function UserManagement() {
               <Label>Email</Label>
               <Input
                 type="email"
-                placeholder="maria@ward.org"
+                placeholder="maria@gcw.org"
                 value={newEmail}
                 onChange={(e) => setNewEmail(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Temporary Password</Label>
+              <Input
+                type="text"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
               />
             </div>
             <div className="space-y-1.5">
@@ -171,21 +245,24 @@ export function UserManagement() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {(Object.keys(roleLabels) as UserRole[]).map((r) => (
-                    <SelectItem key={r} value={r}>
-                      {roleLabels[r]}
+                  {addableRoles.map((r) => (
+                    <SelectItem key={r.value} value={r.value}>
+                      {r.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
+            {inviteError && (
+              <p className="text-sm text-destructive">{inviteError}</p>
+            )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setInviteOpen(false)}>
+            <Button variant="outline" onClick={() => handleInviteOpenChange(false)}>
               Cancel
             </Button>
-            <Button onClick={handleInvite} disabled={!newName || !newEmail}>
-              Add User
+            <Button onClick={handleInvite} disabled={!newName || !newEmail || !newPassword || inviteLoading}>
+              {inviteLoading ? 'Adding…' : 'Add User'}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -65,33 +65,34 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [members, setMembers] = useState<Member[]>(mockMembers)
   const [households, setHouseholds] = useState<Household[]>(mockHouseholds)
   const [users, setUsers] = useState<AppUser[]>([])
-  const [loading, setLoading] = useState(!!supabase)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!supabase) {
-      console.log('[DataContext] Supabase not configured — using mock data')
-      setLoading(false)
-      return
-    }
+    const fetchMembers = supabase
+      .from('members')
+      .select('*', { count: 'exact' })
+      .order('preferred_name')
+      .then(({ data, error }) => {
+        if (error) {
+          console.error('[DataContext] Members fetch error:', error)
+        } else if (data) {
+          setMembers((data as DbMember[]).map(mapDbMember))
+        }
+      })
 
-    Promise.all([
-      supabase
-        .from('members')
-        .select('*', { count: 'exact' })
-        .order('preferred_name'),
-      supabase
-        .from('app_users')
-        .select('*')
-        .order('full_name'),
-    ]).then(([membersRes, usersRes]) => {
-      if (membersRes.data) {
-        setMembers((membersRes.data as DbMember[]).map(mapDbMember))
-      }
-      if (usersRes.data) {
-        setUsers(usersRes.data as AppUser[])
-      }
-      setLoading(false)
-    })
+    const fetchUsers = supabase
+      .from('app_users')
+      .select('*')
+      .order('full_name')
+      .then(({ data, error }) => {
+        if (error) {
+          console.error('[DataContext] app_users fetch error:', error)
+        } else if (data) {
+          setUsers(data as AppUser[])
+        }
+      })
+
+    Promise.all([fetchMembers, fetchUsers]).finally(() => setLoading(false))
   }, [])
 
   const updateMember = (id: string, updates: Partial<Member>) =>
@@ -108,8 +109,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, ...updates } : u)))
 
   const addUser = async (name: string, email: string, password: string, role: UserRole): Promise<{ error: string | null }> => {
-    if (!supabase) return { error: 'Supabase not configured' }
-
     const { data, error } = await supabase.rpc('create_managed_user', {
       p_email: email,
       p_password: password,

@@ -50,7 +50,7 @@ const addableRoles: { value: UserRole; label: string }[] = [
 ]
 
 export function UserManagement() {
-  const { users, updateUser, addUser } = useData()
+  const { users, addUser } = useData()
   const { currentUser } = useAuth()
   const isAdmin = currentUser?.role === 'admin'
   const [inviteOpen, setInviteOpen] = useState(false)

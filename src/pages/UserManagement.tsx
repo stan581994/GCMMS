@@ -44,7 +44,7 @@ const roleBadgeClass: Record<UserRole, string> = {
 }
 
 export function UserManagement() {
-  const { users, updateUser, addUser } = useData()
+  const { users, addUser } = useData()
   const [inviteOpen, setInviteOpen] = useState(false)
   const [newName, setNewName] = useState('')
   const [newEmail, setNewEmail] = useState('')
@@ -93,7 +93,6 @@ export function UserManagement() {
               <TableHead>Role</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Created</TableHead>
-              <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -102,21 +101,9 @@ export function UserManagement() {
                 <TableCell className="font-medium">{u.full_name}</TableCell>
                 <TableCell className="text-muted-foreground">{u.email}</TableCell>
                 <TableCell>
-                  <Select
-                    value={u.role}
-                    onValueChange={(v) => updateUser(u.id, { role: v as UserRole })}
-                  >
-                    <SelectTrigger className="h-8 w-40 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(Object.keys(roleLabels) as UserRole[]).map((r) => (
-                        <SelectItem key={r} value={r} className="text-xs">
-                          {roleLabels[r]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Badge variant="outline" className={roleBadgeClass[u.role]}>
+                    {roleLabels[u.role]}
+                  </Badge>
                 </TableCell>
                 <TableCell>
                   <Badge
@@ -127,16 +114,6 @@ export function UserManagement() {
                   </Badge>
                 </TableCell>
                 <TableCell className="text-muted-foreground">{formatDate(u.created_at)}</TableCell>
-                <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={u.is_active ? 'text-destructive hover:text-destructive' : ''}
-                    onClick={() => updateUser(u.id, { is_active: !u.is_active })}
-                  >
-                    {u.is_active ? 'Deactivate' : 'Reactivate'}
-                  </Button>
-                </TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -158,31 +135,6 @@ export function UserManagement() {
               >
                 {roleLabels[u.role]}
               </Badge>
-            </div>
-            <div className="mt-3 flex items-center gap-2">
-              <Select
-                value={u.role}
-                onValueChange={(v) => updateUser(u.id, { role: v as UserRole })}
-              >
-                <SelectTrigger className="h-8 flex-1 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {(Object.keys(roleLabels) as UserRole[]).map((r) => (
-                    <SelectItem key={r} value={r} className="text-xs">
-                      {roleLabels[r]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button
-                variant={u.is_active ? 'outline' : 'secondary'}
-                size="sm"
-                className={u.is_active ? 'text-destructive border-destructive/30' : ''}
-                onClick={() => updateUser(u.id, { is_active: !u.is_active })}
-              >
-                {u.is_active ? 'Deactivate' : 'Reactivate'}
-              </Button>
             </div>
           </div>
         ))}

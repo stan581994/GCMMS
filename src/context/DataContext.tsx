@@ -73,24 +73,33 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       return
     }
 
-    console.log('[DataContext] Fetching members from Supabase…')
-
-    supabase
+    const fetchMembers = supabase
       .from('members')
       .select('*', { count: 'exact' })
       .order('preferred_name')
       .then(({ data, error, count, status, statusText }) => {
-        console.log('[DataContext] Response — status:', status, statusText, '| count:', count)
+        console.log('[DataContext] Members — status:', status, statusText, '| count:', count)
         if (error) {
-          console.error('[DataContext] Supabase fetch error:', error)
+          console.error('[DataContext] Members fetch error:', error)
         } else if (data) {
-          console.log(`[DataContext] Fetched ${data.length} rows from DB:`, data)
           const mapped = (data as DbMember[]).map(mapDbMember)
-          console.log('[DataContext] Mapped to Member[]:', mapped)
           setMembers(mapped)
         }
-        setLoading(false)
       })
+
+    const fetchUsers = supabase
+      .from('app_users')
+      .select('id, full_name, role, is_active, created_at')
+      .eq('is_active', true)
+      .then(({ data, error }) => {
+        if (error) {
+          console.error('[DataContext] app_users fetch error:', error)
+        } else if (data) {
+          setUsers(data as AppUser[])
+        }
+      })
+
+    Promise.all([fetchMembers, fetchUsers]).then(() => setLoading(false))
   }, [])
 
   const updateMember = (id: string, updates: Partial<Member>) =>

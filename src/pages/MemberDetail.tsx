@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useData } from '@/context/DataContext'
 import { useAuth } from '@/context/AuthContext'
 import { canEdit, canEditStatusOnly } from '@/lib/auth'
-import { getUserById } from '@/data/mock'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -23,20 +22,18 @@ import type { MemberStatus } from '@/types'
 export function MemberDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { updateMember, members, households } = useData()
+  const { updateMember, members, households, users } = useData()
   const { currentUser } = useAuth()
 
   const member = members.find((m) => m.id === id)
   const household = member ? households.find((h) => h.id === member.household_id) : undefined
-  const householdMembers = member
-    ? members.filter((m) => m.household_id === member.household_id && m.id !== id)
-    : []
-  const lastEditor = member ? getUserById(member.updated_by) : undefined
 
   const [status, setStatus] = useState<MemberStatus>(member?.status ?? 'unknown')
   const [notes, setNotes] = useState(member?.notes ?? '')
   const [firstName, setFirstName] = useState(member?.first_name ?? '')
   const [lastName, setLastName] = useState(member?.last_name ?? '')
+  const [assignedTo, setAssignedTo] = useState<string>(member?.assigned_to ?? '__unassigned__')
+  const ministeringUsers = users.filter((u) => u.role === 'ministering')
   const [saved, setSaved] = useState(false)
 
   if (!member) {
@@ -57,22 +54,22 @@ export function MemberDetail() {
 
   const handleSave = () => {
     if (!editable || !currentUser) return
+    const assigned_to = assignedTo === '__unassigned__' ? null : assignedTo
     const updates = statusOnlyEdit
-      ? { status, notes, updated_by: currentUser.id }
-      : { status, notes, first_name: firstName, last_name: lastName, updated_by: currentUser.id }
+      ? { status, notes, assigned_to, updated_by: currentUser.id }
+      : { status, notes, first_name: firstName, last_name: lastName, assigned_to, updated_by: currentUser.id }
     updateMember(member.id, updates)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
 
+  const assignedUser = member.assigned_to ? users.find((u) => u.id === member.assigned_to) : undefined
+
   const formatDate = (iso: string) =>
-    new Date(iso).toLocaleDateString('en-US', {
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
+    new Date(iso).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+
+  const formatTime = (iso: string) =>
+    new Date(iso).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -146,6 +143,27 @@ export function MemberDetail() {
             />
           </div>
 
+          <div className="space-y-1.5">
+            <Label>Assigned to Person</Label>
+            <Select
+              value={assignedTo}
+              onValueChange={setAssignedTo}
+              disabled={!editable}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a person…" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__unassigned__">Unassigned</SelectItem>
+                {ministeringUsers.map((u) => (
+                  <SelectItem key={u.id} value={u.id}>
+                    {u.full_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           {editable && (
             <Button onClick={handleSave} className="w-full sm:w-auto">
               <Save className="mr-2 h-4 w-4" />
@@ -157,31 +175,8 @@ export function MemberDetail() {
 
       {/* Audit info */}
       <p className="text-xs text-muted-foreground">
-        Last updated {formatDate(member.updated_at)} by {lastEditor?.full_name ?? 'Unknown'}
+        Last updated {formatDate(member.updated_at)} at {formatTime(member.updated_at)} by {assignedUser?.full_name ?? 'Unassigned'}
       </p>
-
-      {/* Household members */}
-      {householdMembers.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Other Household Members</CardTitle>
-          </CardHeader>
-          <CardContent className="divide-y p-0">
-            {householdMembers.map((hm) => (
-              <button
-                key={hm.id}
-                onClick={() => navigate(`/members/${hm.id}`)}
-                className="flex w-full items-center justify-between px-6 py-3 hover:bg-accent/50"
-              >
-                <span className="text-sm font-medium">
-                  {hm.first_name} {hm.last_name}
-                </span>
-                <StatusBadge status={hm.status} />
-              </button>
-            ))}
-          </CardContent>
-        </Card>
-      )}
     </div>
   )
 }

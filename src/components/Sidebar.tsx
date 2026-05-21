@@ -2,7 +2,6 @@ import { NavLink } from 'react-router-dom'
 import { LayoutDashboard, Users, UserCog, X } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { isAdmin } from '@/lib/auth'
-import { RoleSwitcher } from './RoleSwitcher'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
@@ -76,10 +75,6 @@ export function Sidebar({ onClose }: SidebarProps) {
         )}
       </nav>
 
-      <div className="mt-auto">
-        <Separator />
-        <RoleSwitcher />
-      </div>
     </div>
   )
 }

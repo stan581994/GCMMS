@@ -13,6 +13,7 @@ export interface Member {
   household_id: string
   first_name: string
   last_name: string
+  address?: string
   phone: string | null
   email: string | null
   status: MemberStatus

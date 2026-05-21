@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useData } from '@/context/DataContext'
 import { StatusBadge } from '@/components/StatusBadge'
@@ -25,8 +25,14 @@ type SortKey = 'name' | 'address' | 'status' | 'updated_at'
 type SortDir = 'asc' | 'desc'
 
 export function Members() {
-  const { members, households } = useData()
+  const { members, households, loading } = useData()
   const navigate = useNavigate()
+
+  useEffect(() => {
+    console.log('[Members] loading:', loading)
+    console.log('[Members] members count:', members.length)
+    console.log('[Members] members sample (first 3):', members.slice(0, 3))
+  }, [members, loading])
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<MemberStatus | 'all'>('all')
   const [householdFilter, setHouseholdFilter] = useState<string>('all')
@@ -56,8 +62,8 @@ export function Members() {
           va = `${a.last_name} ${a.first_name}`
           vb = `${b.last_name} ${b.first_name}`
         } else if (sortKey === 'address') {
-          va = addressMap[a.household_id] ?? ''
-          vb = addressMap[b.household_id] ?? ''
+          va = a.address ?? addressMap[a.household_id] ?? ''
+          vb = b.address ?? addressMap[b.household_id] ?? ''
         } else if (sortKey === 'status') {
           va = a.status
           vb = b.status
@@ -68,6 +74,10 @@ export function Members() {
         return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va)
       })
   }, [members, search, statusFilter, householdFilter, sortKey, sortDir, addressMap])
+
+  useEffect(() => {
+    console.log('[Members] filtered count:', filtered.length)
+  }, [filtered])
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -89,6 +99,14 @@ export function Members() {
 
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+
+  if (loading) {
+    return (
+      <div className="flex h-48 items-center justify-center text-muted-foreground">
+        Loading members…
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-4">
@@ -116,7 +134,7 @@ export function Members() {
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="all">All Status</SelectItem>
             <SelectItem value="active">Active</SelectItem>
             <SelectItem value="moved_out">Moved Out</SelectItem>
             <SelectItem value="transferred">Transferred</SelectItem>
@@ -187,7 +205,7 @@ export function Members() {
                   <TableCell className="font-medium">
                     {m.first_name} {m.last_name}
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{addressMap[m.household_id] ?? '—'}</TableCell>
+                  <TableCell className="text-muted-foreground">{m.address ?? addressMap[m.household_id] ?? '—'}</TableCell>
                   <TableCell className="text-muted-foreground">{m.assigned_to ?? '—'}</TableCell>
                   <TableCell>
                     <StatusBadge status={m.status} />
@@ -216,7 +234,7 @@ export function Members() {
                   {m.first_name} {m.last_name}
                 </p>
                 <p className="truncate text-xs text-muted-foreground">
-                  {addressMap[m.household_id] ?? '—'} · {m.assigned_to ?? 'Unassigned'}
+                  {m.address ?? addressMap[m.household_id] ?? '—'} · {m.assigned_to ?? 'Unassigned'}
                 </p>
                 <p className="text-xs text-muted-foreground">{formatDate(m.updated_at)}</p>
               </div>

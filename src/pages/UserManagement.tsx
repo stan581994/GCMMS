@@ -79,7 +79,7 @@ export function UserManagement() {
         </div>
         <Button onClick={() => setInviteOpen(true)}>
           <UserPlus className="mr-2 h-4 w-4" />
-          Invite User
+          Add User
         </Button>
       </div>
 
@@ -192,7 +192,7 @@ export function UserManagement() {
       <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Invite New User</DialogTitle>
+            <DialogTitle>Add New User</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">

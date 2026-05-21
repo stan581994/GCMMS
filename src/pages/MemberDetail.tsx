@@ -37,8 +37,6 @@ export function MemberDetail() {
   const [notes, setNotes] = useState(member?.notes ?? '')
   const [firstName, setFirstName] = useState(member?.first_name ?? '')
   const [lastName, setLastName] = useState(member?.last_name ?? '')
-  const [phone, setPhone] = useState(member?.phone ?? '')
-  const [email, setEmail] = useState(member?.email ?? '')
   const [saved, setSaved] = useState(false)
 
   if (!member) {
@@ -61,7 +59,7 @@ export function MemberDetail() {
     if (!editable || !currentUser) return
     const updates = statusOnlyEdit
       ? { status, notes, updated_by: currentUser.id }
-      : { status, notes, first_name: firstName, last_name: lastName, phone: phone || null, email: email || null, updated_by: currentUser.id }
+      : { status, notes, first_name: firstName, last_name: lastName, updated_by: currentUser.id }
     updateMember(member.id, updates)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
@@ -115,24 +113,7 @@ export function MemberDetail() {
                 disabled={!fullEdit}
               />
             </div>
-            <div className="space-y-1.5">
-              <Label>Phone</Label>
-              <Input
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                disabled={!fullEdit}
-                placeholder="No phone"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Email</Label>
-              <Input
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={!fullEdit}
-                placeholder="No email"
-              />
-            </div>
+
           </div>
 
           <div className="space-y-1.5">

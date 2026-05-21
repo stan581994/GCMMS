@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Users, Home, UserCog, X } from 'lucide-react'
+import { LayoutDashboard, Users, UserCog, X } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { isAdmin } from '@/lib/auth'
 import { RoleSwitcher } from './RoleSwitcher'
@@ -10,7 +10,6 @@ import { cn } from '@/lib/utils'
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/members', label: 'Members', icon: Users },
-  { to: '/households', label: 'Households', icon: Home },
 ]
 
 interface SidebarProps {

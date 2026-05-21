@@ -56,14 +56,14 @@ export function MemberDetail() {
     if (!editable || !currentUser) return
     const assigned_to = assignedTo === '__unassigned__' ? null : assignedTo
     const updates = statusOnlyEdit
-      ? { status, notes, assigned_to, updated_by: currentUser.id }
+      ? { status, notes, updated_by: currentUser.id }
       : { status, notes, first_name: firstName, last_name: lastName, assigned_to, updated_by: currentUser.id }
     updateMember(member.id, updates)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
 
-  const assignedUser = member.assigned_to ? users.find((u) => u.id === member.assigned_to) : undefined
+  const lastEditor = member.updated_by ? users.find((u) => u.id === member.updated_by) : undefined
 
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
@@ -148,7 +148,7 @@ export function MemberDetail() {
             <Select
               value={assignedTo}
               onValueChange={setAssignedTo}
-              disabled={!editable}
+              disabled={!fullEdit}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select a person…" />
@@ -175,7 +175,7 @@ export function MemberDetail() {
 
       {/* Audit info */}
       <p className="text-xs text-muted-foreground">
-        Last updated {formatDate(member.updated_at)} at {formatTime(member.updated_at)} by {assignedUser?.full_name ?? 'Unassigned'}
+        Last updated {formatDate(member.updated_at)} at {formatTime(member.updated_at)} by {lastEditor?.full_name ?? 'Unknown'}
       </p>
     </div>
   )

@@ -65,14 +65,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [members, setMembers] = useState<Member[]>(mockMembers)
   const [households, setHouseholds] = useState<Household[]>(mockHouseholds)
   const [users, setUsers] = useState<AppUser[]>(mockUsers)
-  const [loading, setLoading] = useState(!!supabase)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!supabase) {
-      console.log('[DataContext] Supabase not configured — using mock data')
-      return
-    }
-
     const fetchMembers = supabase
       .from('members')
       .select('*', { count: 'exact' })
@@ -99,7 +94,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         }
       })
 
-    Promise.all([fetchMembers, fetchUsers]).then(() => setLoading(false))
+    Promise.all([fetchMembers, fetchUsers]).finally(() => setLoading(false))
   }, [])
 
   const updateMember = (id: string, updates: Partial<Member>) =>

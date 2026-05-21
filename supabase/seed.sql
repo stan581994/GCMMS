@@ -5,7 +5,11 @@ delete from auth.users;
 insert into auth.users (
   id, instance_id, email, encrypted_password,
   email_confirmed_at, created_at, updated_at,
-  raw_app_meta_data, raw_user_meta_data, aud, role
+  raw_app_meta_data, raw_user_meta_data, aud, role,
+  confirmation_token, recovery_token,
+  email_change_token_new, email_change,
+  phone, phone_change, phone_change_token,
+  email_change_token_current, reauthentication_token
 ) values
   (
     'b2000000-0000-0000-0000-000000000001',
@@ -13,8 +17,9 @@ insert into auth.users (
     'steven@gcw.org',
     crypt('GoldenCity', gen_salt('bf')),
     now(), now(), now(),
-    '{}', '{}',
-    'authenticated', 'authenticated'
+    '{"provider":"email","providers":["email"]}', '{}',
+    'authenticated', 'authenticated',
+    '', '', '', '', null, '', '', '', ''
   ),
   (
     'b2000000-0000-0000-0000-000000000002',
@@ -22,8 +27,9 @@ insert into auth.users (
     'archie@gcw.org',
     crypt('GoldenCity', gen_salt('bf')),
     now(), now(), now(),
-    '{}', '{}',
-    'authenticated', 'authenticated'
+    '{"provider":"email","providers":["email"]}', '{}',
+    'authenticated', 'authenticated',
+    '', '', '', '', null, '', '', '', ''
   ),
   (
     'b2000000-0000-0000-0000-000000000003',
@@ -31,8 +37,9 @@ insert into auth.users (
     'lehi@gcw.org',
     crypt('GoldenCity', gen_salt('bf')),
     now(), now(), now(),
-    '{}', '{}',
-    'authenticated', 'authenticated'
+    '{"provider":"email","providers":["email"]}', '{}',
+    'authenticated', 'authenticated',
+    '', '', '', '', null, '', '', '', ''
   ),
   (
     'b2000000-0000-0000-0000-000000000004',
@@ -40,8 +47,9 @@ insert into auth.users (
     'saple@gcw.org',
     crypt('GoldenCity', gen_salt('bf')),
     now(), now(), now(),
-    '{}', '{}',
-    'authenticated', 'authenticated'
+    '{"provider":"email","providers":["email"]}', '{}',
+    'authenticated', 'authenticated',
+    '', '', '', '', null, '', '', '', ''
   );
 
 -- Identity records (required for email/password sign-in)

@@ -69,31 +69,43 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const fetchMembers = supabase
-      .from('members')
-      .select('*', { count: 'exact' })
-      .order('preferred_name')
-      .then(({ data, error }) => {
-        if (error) {
-          console.error('[DataContext] Members fetch error:', error)
-        } else if (data) {
-          setMembers((data as DbMember[]).map(mapDbMember))
-        }
-      })
+    function fetchAll() {
+      setLoading(true)
+      const fetchMembers = supabase
+        .from('members')
+        .select('*', { count: 'exact' })
+        .order('preferred_name')
+        .then(({ data, error }) => {
+          if (error) {
+            console.error('[DataContext] Members fetch error:', error)
+          } else if (data) {
+            setMembers((data as DbMember[]).map(mapDbMember))
+          }
+        })
 
-    const fetchUsers = supabase
-      .from('app_users')
-      .select('*')
-      .order('full_name')
-      .then(({ data, error }) => {
-        if (error) {
-          console.error('[DataContext] app_users fetch error:', error)
-        } else if (data) {
-          setUsers(data as AppUser[])
-        }
-      })
+      const fetchUsers = supabase
+        .from('app_users')
+        .select('*')
+        .order('full_name')
+        .then(({ data, error }) => {
+          if (error) {
+            console.error('[DataContext] app_users fetch error:', error)
+          } else if (data) {
+            setUsers(data as AppUser[])
+          }
+        })
 
-    Promise.all([fetchMembers, fetchUsers]).finally(() => setLoading(false))
+      Promise.all([fetchMembers, fetchUsers]).finally(() => setLoading(false))
+    }
+
+    fetchAll()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') fetchAll()
+      if (event === 'SIGNED_OUT') { setMembers(mockMembers); setUsers([]) }
+    })
+
+    return () => subscription.unsubscribe()
   }, [])
 
   const updateMember = (id: string, updates: Partial<Member>) =>

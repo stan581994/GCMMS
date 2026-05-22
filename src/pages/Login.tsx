@@ -6,13 +6,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
-const hints = [
-  { email: 'steven@gcw.org', role: 'Admin' },
-  { email: 'archie@gcw.org', role: 'Clerk' },
-  { email: 'lehi@gcw.org', role: 'Clerk' },
-  { email: 'saple@gcw.org', role: 'Ministering' },
-]
-
 export function Login() {
   const { login, isAuthenticated, isLoading } = useAuth()
   const navigate = useNavigate()
@@ -89,30 +82,6 @@ export function Login() {
             </form>
           </CardContent>
         </Card>
-
-        {import.meta.env.DEV && (
-          <Card className="border-dashed">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Dev — Test Accounts
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-1 pb-4">
-              {hints.map((h) => (
-                <button
-                  key={h.email}
-                  type="button"
-                  onClick={() => setEmail(h.email)}
-                  className="flex w-full items-center justify-between rounded px-2 py-1 text-left text-xs hover:bg-accent"
-                >
-                  <span className="font-mono text-muted-foreground">{h.email}</span>
-                  <span className="text-muted-foreground">{h.role}</span>
-                </button>
-              ))}
-              <p className="mt-2 text-xs text-muted-foreground">Password: <span className="font-mono">GoldenCity</span></p>
-            </CardContent>
-          </Card>
-        )}
       </div>
     </div>
   )

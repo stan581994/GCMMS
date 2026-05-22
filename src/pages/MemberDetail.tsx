@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useData } from '@/context/DataContext'
 import { useAuth } from '@/context/AuthContext'
-import { canEdit, canEditStatusOnly } from '@/lib/auth'
+import { canEdit, canEditStatusOnly, isAdmin } from '@/lib/auth'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -51,6 +51,7 @@ export function MemberDetail() {
 
   const role = currentUser?.role ?? 'ministering'
   const fullEdit = canEdit(role)
+  const adminEdit = isAdmin(role)
   const statusOnlyEdit = canEditStatusOnly(role)
   const editable = fullEdit || statusOnlyEdit
 
@@ -58,11 +59,17 @@ export function MemberDetail() {
     if (!editable || !currentUser) return
     setSaving(true)
     setSaveError(null)
-    const assigned_to = assignedTo === '__unassigned__' ? null : assignedTo
     const new_address = action === 'update_address' ? (newAddress || null) : null
-    const updates = statusOnlyEdit
-      ? { status, new_address, updated_by: currentUser.id }
-      : { status, new_address, first_name: firstName, last_name: lastName, assigned_to, updated_by: currentUser.id }
+    const updates = {
+      status,
+      new_address,
+      updated_by: currentUser.id,
+      ...(adminEdit ? {
+        first_name: firstName,
+        last_name: lastName,
+        assigned_to: assignedTo === '__unassigned__' ? null : assignedTo,
+      } : {}),
+    }
     const { error } = await updateMember(member.id, updates)
     setSaving(false)
     if (error) {
@@ -109,7 +116,7 @@ export function MemberDetail() {
               <Input
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
-                disabled={!fullEdit}
+                disabled={!adminEdit}
               />
             </div>
             <div className="space-y-1.5">
@@ -117,7 +124,7 @@ export function MemberDetail() {
               <Input
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
-                disabled={!fullEdit}
+                disabled={!adminEdit}
               />
             </div>
 
@@ -174,7 +181,7 @@ export function MemberDetail() {
             <Select
               value={assignedTo}
               onValueChange={setAssignedTo}
-              disabled={!fullEdit}
+              disabled={!adminEdit}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select a person…" />

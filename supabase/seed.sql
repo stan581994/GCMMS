@@ -1,7 +1,5 @@
--- Reset: remove all existing auth users (cascades to identities and app_users)
-delete from auth.users;
-
 -- Auth users — password: GoldenCity
+-- Safe to re-run: uses ON CONFLICT DO NOTHING
 insert into auth.users (
   id, instance_id, email, encrypted_password,
   email_confirmed_at, created_at, updated_at,
@@ -50,7 +48,8 @@ insert into auth.users (
     '{"provider":"email","providers":["email"]}', '{}',
     'authenticated', 'authenticated',
     '', '', '', '', null, '', '', '', ''
-  );
+  )
+on conflict (id) do nothing;
 
 -- Identity records (required for email/password sign-in)
 insert into auth.identities (
@@ -84,11 +83,13 @@ insert into auth.identities (
     'saple@gcw.org', 'email',
     '{"sub":"b2000000-0000-0000-0000-000000000004","email":"saple@gcw.org"}',
     now(), now(), now()
-  );
+  )
+on conflict (provider_id, provider) do nothing;
 
 -- App user profiles
 insert into app_users (id, full_name, email, role, is_active) values
   ('b2000000-0000-0000-0000-000000000001', 'Steven', 'steven@gcw.org', 'admin', true),
   ('b2000000-0000-0000-0000-000000000002', 'Archie', 'archie@gcw.org', 'clerk', true),
   ('b2000000-0000-0000-0000-000000000003', 'Lehi', 'lehi@gcw.org', 'clerk', true),
-  ('b2000000-0000-0000-0000-000000000004', 'Saple', 'saple@gcw.org', 'ministering', true);
+  ('b2000000-0000-0000-0000-000000000004', 'Saple', 'saple@gcw.org', 'ministering', true)
+on conflict (id) do nothing;

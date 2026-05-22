@@ -27,8 +27,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { UserPlus } from 'lucide-react'
-import type { UserRole } from '@/types'
+import { UserPlus, Trash2 } from 'lucide-react'
+import type { AppUser, UserRole } from '@/types'
 
 const roleLabels: Record<UserRole, string> = {
   admin: 'Admin',
@@ -50,7 +50,7 @@ const addableRoles: { value: UserRole; label: string }[] = [
 ]
 
 export function UserManagement() {
-  const { users, addUser } = useData()
+  const { users, addUser, updateUser, deleteUser } = useData()
   const { currentUser } = useAuth()
   const isAdmin = currentUser?.role === 'admin'
   const [inviteOpen, setInviteOpen] = useState(false)
@@ -60,6 +60,26 @@ export function UserManagement() {
   const [newRole, setNewRole] = useState<UserRole>('clerk')
   const [inviteError, setInviteError] = useState('')
   const [inviteLoading, setInviteLoading] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<AppUser | null>(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return
+    setDeleteError('')
+    setDeleteLoading(true)
+    const { error } = await deleteUser(deleteTarget.id)
+    setDeleteLoading(false)
+    if (error) {
+      setDeleteError(error)
+      return
+    }
+    setDeleteTarget(null)
+  }
+
+  const handleDeleteOpenChange = (open: boolean) => {
+    if (!open) { setDeleteTarget(null); setDeleteError('') }
+  }
 
   const handleInvite = async () => {
     if (!newName || !newEmail) return
@@ -149,10 +169,11 @@ export function UserManagement() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className={u.is_active ? 'text-destructive hover:text-destructive' : ''}
-                    onClick={() => updateUser(u.id, { is_active: !u.is_active })}
+                    className="text-destructive hover:text-destructive"
+                    onClick={() => setDeleteTarget(u)}
                   >
-                    {u.is_active ? 'Deactivate' : 'Reactivate'}
+                    <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                    Delete
                   </Button>
                 </TableCell>
               </TableRow>
@@ -194,17 +215,45 @@ export function UserManagement() {
                 </SelectContent>
               </Select>
               <Button
-                variant={u.is_active ? 'outline' : 'secondary'}
+                variant="outline"
                 size="sm"
-                className={u.is_active ? 'text-destructive border-destructive/30' : ''}
-                onClick={() => updateUser(u.id, { is_active: !u.is_active })}
+                className="text-destructive border-destructive/30"
+                onClick={() => setDeleteTarget(u)}
               >
-                {u.is_active ? 'Deactivate' : 'Reactivate'}
+                <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                Delete
               </Button>
             </div>
           </div>
         ))}
       </div>
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={!!deleteTarget} onOpenChange={handleDeleteOpenChange}>
+        <DialogContent className="sm:max-w-md" aria-describedby={undefined}>
+          <DialogHeader>
+            <DialogTitle>Delete User</DialogTitle>
+          </DialogHeader>
+          <div className="py-2 space-y-2">
+            <p className="text-sm text-muted-foreground">
+              Are you sure you want to delete{' '}
+              <span className="font-semibold text-foreground">{deleteTarget?.full_name}</span>?
+              This action cannot be undone.
+            </p>
+            {deleteError && (
+              <p className="text-sm text-destructive">{deleteError}</p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => handleDeleteOpenChange(false)} disabled={deleteLoading}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteConfirm} disabled={deleteLoading}>
+              {deleteLoading ? 'Deleting…' : 'Delete'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Invite dialog */}
       <Dialog open={inviteOpen} onOpenChange={handleInviteOpenChange}>

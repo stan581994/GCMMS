@@ -57,6 +57,7 @@ interface DataContextType {
   updateHousehold: (id: string, updates: Partial<Household>) => void
   updateUser: (id: string, updates: Partial<AppUser>) => void
   addUser: (name: string, email: string, password: string, role: UserRole) => Promise<{ error: string | null }>
+  deleteUser: (id: string) => Promise<{ error: string | null }>
 }
 
 const DataContext = createContext<DataContextType | null>(null)
@@ -125,9 +126,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     return { error: null }
   }
 
+  const deleteUser = async (id: string): Promise<{ error: string | null }> => {
+    const { error } = await supabase.rpc('delete_managed_user', { p_user_id: id })
+    if (error) return { error: error.message }
+    setUsers((prev) => prev.filter((u) => u.id !== id))
+    return { error: null }
+  }
+
   return (
     <DataContext.Provider
-      value={{ members, households, users, loading, updateMember, updateHousehold, updateUser, addUser }}
+      value={{ members, households, users, loading, updateMember, updateHousehold, updateUser, addUser, deleteUser }}
     >
       {children}
     </DataContext.Provider>

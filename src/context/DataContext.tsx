@@ -61,7 +61,7 @@ interface DataContextType {
   households: Household[]
   users: AppUser[]
   loading: boolean
-  updateMember: (id: string, updates: Partial<Member>) => void
+  updateMember: (id: string, updates: Partial<Member>) => Promise<{ error: string | null }>
   updateHousehold: (id: string, updates: Partial<Household>) => void
   updateUser: (id: string, updates: Partial<AppUser>) => void
   addUser: (name: string, email: string, password: string, role: UserRole) => Promise<{ error: string | null }>
@@ -116,18 +116,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe()
   }, [])
 
-  const updateMember = (id: string, updates: Partial<Member>) => {
-    setMembers((prev) =>
-      prev.map((m) =>
-        m.id === id ? { ...m, ...updates, updated_at: new Date().toISOString() } : m
-      )
-    )
-
+  const updateMember = async (id: string, updates: Partial<Member>): Promise<{ error: string | null }> => {
     const current = members.find((m) => m.id === id)
-    if (!current) return
+    if (!current) return { error: 'Member not found' }
     const merged = { ...current, ...updates }
 
-    supabase
+    const { data, error } = await supabase
       .from('members')
       .update({
         preferred_name: `${merged.last_name}, ${merged.first_name}`,
@@ -137,9 +131,24 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         updated_at: new Date().toISOString(),
       })
       .eq('id', Number(id))
-      .then(({ error }) => {
-        if (error) console.error('[DataContext] updateMember error:', error)
-      })
+      .select('id')
+
+    if (error) {
+      console.error('[DataContext] updateMember error:', error)
+      return { error: error.message }
+    }
+
+    if (!data || data.length === 0) {
+      console.error('[DataContext] updateMember: 0 rows updated — RLS may be blocking the update')
+      return { error: 'Save failed: no rows were updated. The update policy may not be applied in Supabase.' }
+    }
+
+    setMembers((prev) =>
+      prev.map((m) =>
+        m.id === id ? { ...m, ...updates, updated_at: new Date().toISOString() } : m
+      )
+    )
+    return { error: null }
   }
 
   const updateHousehold = (id: string, updates: Partial<Household>) =>

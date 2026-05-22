@@ -25,7 +25,7 @@ type SortKey = 'name' | 'address' | 'status' | 'updated_at'
 type SortDir = 'asc' | 'desc'
 
 export function Members() {
-  const { members, households, loading } = useData()
+  const { members, households, users, loading } = useData()
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -44,6 +44,11 @@ export function Members() {
     [households]
   )
 
+  const userMap = useMemo(
+    () => Object.fromEntries(users.map((u) => [u.id, u.full_name])),
+    [users]
+  )
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase()
     return members
@@ -51,7 +56,7 @@ export function Members() {
         const matchSearch =
           !q ||
           `${m.first_name} ${m.last_name}`.toLowerCase().includes(q) ||
-          (m.assigned_to ?? '').toLowerCase().includes(q)
+          (m.assigned_to ? (userMap[m.assigned_to] ?? '') : '').toLowerCase().includes(q)
         const matchStatus = statusFilter === 'all' || m.status === statusFilter
         const matchHousehold = householdFilter === 'all' || m.household_id === householdFilter
         return matchSearch && matchStatus && matchHousehold
@@ -73,7 +78,7 @@ export function Members() {
         }
         return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va)
       })
-  }, [members, search, statusFilter, householdFilter, sortKey, sortDir, addressMap])
+  }, [members, search, statusFilter, householdFilter, sortKey, sortDir, addressMap, userMap])
 
   useEffect(() => {
     console.log('[Members] filtered count:', filtered.length)
@@ -206,7 +211,7 @@ export function Members() {
                     {m.last_name}, {m.first_name}
                   </TableCell>
                   <TableCell className="text-muted-foreground">{m.address ?? addressMap[m.household_id] ?? '—'}</TableCell>
-                  <TableCell className="text-muted-foreground">{m.assigned_to ?? '—'}</TableCell>
+                  <TableCell className="text-muted-foreground">{m.assigned_to ? (userMap[m.assigned_to] ?? '—') : '—'}</TableCell>
                   <TableCell>
                     <StatusBadge status={m.status} />
                   </TableCell>
@@ -234,7 +239,7 @@ export function Members() {
                   {m.last_name}, {m.first_name}
                 </p>
                 <p className="truncate text-xs text-muted-foreground">
-                  {m.address ?? addressMap[m.household_id] ?? '—'} · {m.assigned_to ?? 'Unassigned'}
+                  {m.address ?? addressMap[m.household_id] ?? '—'} · {m.assigned_to ? (userMap[m.assigned_to] ?? 'Unassigned') : 'Unassigned'}
                 </p>
                 <p className="text-xs text-muted-foreground">{formatDate(m.updated_at)}</p>
               </div>

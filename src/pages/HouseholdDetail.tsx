@@ -97,7 +97,7 @@ export function HouseholdDetail() {
               >
                 <div className="text-left">
                   <p className="text-sm font-medium">
-                    {m.first_name} {m.last_name}
+                    {m.last_name}, {m.first_name}
                   </p>
                   {m.phone && (
                     <p className="text-xs text-muted-foreground">{m.phone}</p>

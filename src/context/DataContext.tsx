@@ -23,6 +23,13 @@ const STATUS_MAP: Record<string, MemberStatus> = {
   Unknown: 'unknown',
 }
 
+const REVERSE_STATUS_MAP: Record<MemberStatus, string> = {
+  active: 'Active',
+  moved_out: 'Moved Out',
+  transferred: 'Transferred',
+  unknown: 'Unknown',
+}
+
 function mapDbMember(row: DbMember): Member {
   const commaIdx = row.preferred_name.indexOf(',')
   const last_name = commaIdx >= 0 ? row.preferred_name.slice(0, commaIdx).trim() : row.preferred_name
@@ -41,6 +48,7 @@ function mapDbMember(row: DbMember): Member {
     email: null,
     status: (row.status ? STATUS_MAP[row.status] : undefined) ?? 'unknown',
     notes: '',
+    new_address: row.new_address ?? null,
     assigned_to: row.assigned_person ?? null,
     updated_by: '',
     updated_at: row.updated_at ?? row.created_at,
@@ -108,12 +116,31 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe()
   }, [])
 
-  const updateMember = (id: string, updates: Partial<Member>) =>
+  const updateMember = (id: string, updates: Partial<Member>) => {
     setMembers((prev) =>
       prev.map((m) =>
         m.id === id ? { ...m, ...updates, updated_at: new Date().toISOString() } : m
       )
     )
+
+    const current = members.find((m) => m.id === id)
+    if (!current) return
+    const merged = { ...current, ...updates }
+
+    supabase
+      .from('members')
+      .update({
+        preferred_name: `${merged.last_name}, ${merged.first_name}`,
+        status: REVERSE_STATUS_MAP[merged.status],
+        assigned_person: merged.assigned_to ?? null,
+        new_address: merged.new_address ?? null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', Number(id))
+      .then(({ error }) => {
+        if (error) console.error('[DataContext] updateMember error:', error)
+      })
+  }
 
   const updateHousehold = (id: string, updates: Partial<Household>) =>
     setHouseholds((prev) => prev.map((h) => (h.id === id ? { ...h, ...updates } : h)))

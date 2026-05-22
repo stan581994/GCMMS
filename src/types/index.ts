@@ -18,6 +18,7 @@ export interface Member {
   email: string | null
   status: MemberStatus
   notes: string
+  new_address?: string | null
   assigned_to: string | null
   updated_by: string
   updated_at: string

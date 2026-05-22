@@ -87,7 +87,7 @@ export function Dashboard() {
               >
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">
-                    {m.first_name} {m.last_name}
+                    {m.last_name}, {m.first_name}
                   </p>
                   <p className="truncate text-xs text-muted-foreground">
                     Updated by {editor?.full_name ?? 'Unknown'} · {formatDate(m.updated_at)}

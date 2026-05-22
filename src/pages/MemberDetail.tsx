@@ -7,7 +7,6 @@ import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
@@ -29,10 +28,11 @@ export function MemberDetail() {
   const household = member ? households.find((h) => h.id === member.household_id) : undefined
 
   const [status, setStatus] = useState<MemberStatus>(member?.status ?? 'unknown')
-  const [notes, setNotes] = useState(member?.notes ?? '')
   const [firstName, setFirstName] = useState(member?.first_name ?? '')
   const [lastName, setLastName] = useState(member?.last_name ?? '')
   const [assignedTo, setAssignedTo] = useState<string>(member?.assigned_to ?? '__unassigned__')
+  const [action, setAction] = useState<string>(member?.new_address ? 'update_address' : 'none')
+  const [newAddress, setNewAddress] = useState(member?.new_address ?? '')
   const ministeringUsers = users.filter((u) => u.role === 'ministering')
   const [saved, setSaved] = useState(false)
 
@@ -55,9 +55,10 @@ export function MemberDetail() {
   const handleSave = () => {
     if (!editable || !currentUser) return
     const assigned_to = assignedTo === '__unassigned__' ? null : assignedTo
+    const new_address = action === 'update_address' ? (newAddress || null) : null
     const updates = statusOnlyEdit
-      ? { status, notes, updated_by: currentUser.id }
-      : { status, notes, first_name: firstName, last_name: lastName, assigned_to, updated_by: currentUser.id }
+      ? { status, new_address, updated_by: currentUser.id }
+      : { status, new_address, first_name: firstName, last_name: lastName, assigned_to, updated_by: currentUser.id }
     updateMember(member.id, updates)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
@@ -79,7 +80,7 @@ export function MemberDetail() {
         </Button>
         <div>
           <h2 className="text-xl font-bold">
-            {member.first_name} {member.last_name}
+            {member.last_name}, {member.first_name}
           </h2>
           <p className="text-sm text-muted-foreground">{household?.name}</p>
         </div>
@@ -133,13 +134,29 @@ export function MemberDetail() {
           </div>
 
           <div className="space-y-1.5">
-            <Label>Notes</Label>
-            <Textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+            <Label>Address Action</Label>
+            <Select
+              value={action}
+              onValueChange={setAction}
               disabled={!editable}
-              rows={3}
-              placeholder="Add notes about this member…"
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="— No action —" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">— No action —</SelectItem>
+                <SelectItem value="update_address">Update Address</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>New Address</Label>
+            <Input
+              value={newAddress}
+              onChange={(e) => setNewAddress(e.target.value)}
+              disabled={!editable || action !== 'update_address'}
+              placeholder="Enter new address…"
             />
           </div>
 

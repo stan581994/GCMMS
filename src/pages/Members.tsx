@@ -203,7 +203,7 @@ export function Members() {
                   onClick={() => navigate(`/members/${m.id}`)}
                 >
                   <TableCell className="font-medium">
-                    {m.first_name} {m.last_name}
+                    {m.last_name}, {m.first_name}
                   </TableCell>
                   <TableCell className="text-muted-foreground">{m.address ?? addressMap[m.household_id] ?? '—'}</TableCell>
                   <TableCell className="text-muted-foreground">{m.assigned_to ?? '—'}</TableCell>
@@ -231,7 +231,7 @@ export function Members() {
             >
               <div className="min-w-0">
                 <p className="font-medium">
-                  {m.first_name} {m.last_name}
+                  {m.last_name}, {m.first_name}
                 </p>
                 <p className="truncate text-xs text-muted-foreground">
                   {m.address ?? addressMap[m.household_id] ?? '—'} · {m.assigned_to ?? 'Unassigned'}

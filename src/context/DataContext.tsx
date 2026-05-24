@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { mockMembers, mockHouseholds } from '@/data/mock'
-import type { Member, Household, AppUser, MemberStatus, UserRole } from '@/types'
+import type { Member, Household, AppUser, MemberStatus, UserRole, Calling, ClerkTask } from '@/types'
 import { supabase } from '@/lib/supabase'
 
 interface DbMember {
@@ -56,16 +56,49 @@ function mapDbMember(row: DbMember): Member {
   }
 }
 
+function mapDbCalling(row: Record<string, unknown>): Calling {
+  return {
+    ...(row as Omit<Calling, 'id' | 'member_id'>),
+    id: String(row.id),
+    member_id: String(row.member_id),
+  }
+}
+
+function mapDbClerkTask(row: Record<string, unknown>): ClerkTask {
+  return {
+    ...(row as Omit<ClerkTask, 'id' | 'calling_id'>),
+    id: String(row.id),
+    calling_id: String(row.calling_id),
+  }
+}
+
+interface AssignCallingInput {
+  member_id: string
+  position: string
+  sustained_date: string | null
+  is_set_apart: boolean
+}
+
+interface ReleaseCallingInput {
+  calling_id: string
+  released_date: string
+}
+
 interface DataContextType {
   members: Member[]
   households: Household[]
   users: AppUser[]
+  callings: Calling[]
+  clerkTasks: ClerkTask[]
   loading: boolean
   updateMember: (id: string, updates: Partial<Member>) => void
   updateHousehold: (id: string, updates: Partial<Household>) => void
   updateUser: (id: string, updates: Partial<AppUser>) => void
   addUser: (name: string, email: string, password: string, role: UserRole) => Promise<{ error: string | null }>
   deleteUser: (id: string) => Promise<{ error: string | null }>
+  assignCalling: (input: AssignCallingInput) => Promise<{ error: string | null }>
+  releaseCalling: (input: ReleaseCallingInput) => Promise<{ error: string | null }>
+  completeTask: (taskId: string) => Promise<{ error: string | null }>
 }
 
 const DataContext = createContext<DataContextType | null>(null)
@@ -74,6 +107,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [members, setMembers] = useState<Member[]>(mockMembers)
   const [households, setHouseholds] = useState<Household[]>(mockHouseholds)
   const [users, setUsers] = useState<AppUser[]>([])
+  const [callings, setCallings] = useState<Calling[]>([])
+  const [clerkTasks, setClerkTasks] = useState<ClerkTask[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -103,14 +138,32 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           }
         })
 
-      Promise.all([fetchMembers, fetchUsers]).finally(() => setLoading(false))
+      const fetchCallings = supabase
+        .from('callings')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .then(({ data, error }) => {
+          if (error) console.error('[DataContext] callings fetch error:', error)
+          else if (data) setCallings((data as Record<string, unknown>[]).map(mapDbCalling))
+        })
+
+      const fetchClerkTasks = supabase
+        .from('clerk_tasks')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .then(({ data, error }) => {
+          if (error) console.error('[DataContext] clerk_tasks fetch error:', error)
+          else if (data) setClerkTasks((data as Record<string, unknown>[]).map(mapDbClerkTask))
+        })
+
+      Promise.all([fetchMembers, fetchUsers, fetchCallings, fetchClerkTasks]).finally(() => setLoading(false))
     }
 
     fetchAll()
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') fetchAll()
-      if (event === 'SIGNED_OUT') { setMembers(mockMembers); setUsers([]) }
+      if (event === 'SIGNED_OUT') { setMembers(mockMembers); setUsers([]); setCallings([]); setClerkTasks([]) }
     })
 
     return () => subscription.unsubscribe()
@@ -172,9 +225,115 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     return { error: null }
   }
 
+  const assignCalling = async (input: AssignCallingInput): Promise<{ error: string | null }> => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Not authenticated' }
+
+    const { data: callingData, error: callingErr } = await supabase
+      .from('callings')
+      .insert({
+        member_id: Number(input.member_id),
+        position: input.position,
+        sustained_date: input.sustained_date ?? null,
+        is_set_apart: input.is_set_apart,
+        status: 'active',
+        created_by: user.id,
+      })
+      .select()
+      .single()
+
+    if (callingErr || !callingData) return { error: callingErr?.message ?? 'Failed to assign calling' }
+
+    const member = members.find((m) => m.id === input.member_id)
+    const memberName = member ? `${member.last_name}, ${member.first_name}` : `Member #${input.member_id}`
+    const sustainedStr = input.sustained_date ?? 'TBD'
+    const description = `Record calling: ${memberName} — ${input.position}, sustained ${sustainedStr}`
+
+    const { data: taskData, error: taskErr } = await supabase
+      .from('clerk_tasks')
+      .insert({
+        calling_id: callingData.id,
+        task_type: 'calling_assigned',
+        description,
+        created_by: user.id,
+      })
+      .select()
+      .single()
+
+    if (taskErr) return { error: taskErr.message }
+
+    setCallings((prev) => [mapDbCalling(callingData as Record<string, unknown>), ...prev])
+    if (taskData) setClerkTasks((prev) => [mapDbClerkTask(taskData as Record<string, unknown>), ...prev])
+
+    return { error: null }
+  }
+
+  const releaseCalling = async (input: ReleaseCallingInput): Promise<{ error: string | null }> => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Not authenticated' }
+
+    const now = new Date().toISOString()
+    const { error: updateErr } = await supabase
+      .from('callings')
+      .update({ status: 'released', released_date: input.released_date, updated_at: now })
+      .eq('id', Number(input.calling_id))
+
+    if (updateErr) return { error: updateErr.message }
+
+    const calling = callings.find((c) => c.id === input.calling_id)
+    const member = calling ? members.find((m) => m.id === calling.member_id) : null
+    const memberName = member
+      ? `${member.last_name}, ${member.first_name}`
+      : `Member #${calling?.member_id}`
+    const description = `Record release: ${memberName} — ${calling?.position ?? 'calling'}, released ${input.released_date}`
+
+    const { data: taskData, error: taskErr } = await supabase
+      .from('clerk_tasks')
+      .insert({
+        calling_id: Number(input.calling_id),
+        task_type: 'calling_released',
+        description,
+        created_by: user.id,
+      })
+      .select()
+      .single()
+
+    if (taskErr) return { error: taskErr.message }
+
+    setCallings((prev) =>
+      prev.map((c) =>
+        c.id === input.calling_id
+          ? { ...c, status: 'released', released_date: input.released_date, updated_at: now }
+          : c
+      )
+    )
+    if (taskData) setClerkTasks((prev) => [mapDbClerkTask(taskData as Record<string, unknown>), ...prev])
+
+    return { error: null }
+  }
+
+  const completeTask = async (taskId: string): Promise<{ error: string | null }> => {
+    const now = new Date().toISOString()
+    const { error } = await supabase
+      .from('clerk_tasks')
+      .update({ is_complete: true, completed_at: now })
+      .eq('id', Number(taskId))
+
+    if (error) return { error: error.message }
+
+    setClerkTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? { ...t, is_complete: true, completed_at: now } : t))
+    )
+    return { error: null }
+  }
+
   return (
     <DataContext.Provider
-      value={{ members, households, users, loading, updateMember, updateHousehold, updateUser, addUser, deleteUser }}
+      value={{
+        members, households, users, callings, clerkTasks, loading,
+        updateMember, updateHousehold, updateUser, addUser, deleteUser,
+        assignCalling, releaseCalling, completeTask,
+      }}
     >
       {children}
     </DataContext.Provider>

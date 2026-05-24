@@ -33,3 +33,30 @@ export interface AppUser {
   created_at: string
   is_active: boolean
 }
+
+export type CallingStatus = 'active' | 'released'
+export type ClerkTaskType = 'calling_assigned' | 'calling_released'
+
+export interface Calling {
+  id: string
+  member_id: string
+  position: string
+  sustained_date: string | null
+  is_set_apart: boolean
+  released_date: string | null
+  status: CallingStatus
+  created_by: string
+  created_at: string
+  updated_at: string
+}
+
+export interface ClerkTask {
+  id: string
+  calling_id: string
+  task_type: ClerkTaskType
+  description: string
+  is_complete: boolean
+  completed_at: string | null
+  created_by: string
+  created_at: string
+}

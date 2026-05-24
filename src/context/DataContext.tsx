@@ -66,6 +66,7 @@ interface DataContextType {
   updateUser: (id: string, updates: Partial<AppUser>) => void
   addUser: (name: string, email: string, password: string, role: UserRole) => Promise<{ error: string | null }>
   deleteUser: (id: string) => Promise<{ error: string | null }>
+  setPendingAccount: (memberId: string, value: boolean) => void
 }
 
 const DataContext = createContext<DataContextType | null>(null)
@@ -79,31 +80,30 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     function fetchAll() {
       setLoading(true)
-      const fetchMembers = supabase
-        .from('members')
-        .select('*', { count: 'exact' })
-        .order('preferred_name')
-        .then(({ data, error }) => {
-          if (error) {
-            console.error('[DataContext] Members fetch error:', error)
-          } else if (data) {
-            setMembers((data as DbMember[]).map(mapDbMember))
-          }
-        })
-
-      const fetchUsers = supabase
-        .from('app_users')
-        .select('*')
-        .order('full_name')
-        .then(({ data, error }) => {
-          if (error) {
-            console.error('[DataContext] app_users fetch error:', error)
-          } else if (data) {
-            setUsers(data as AppUser[])
-          }
-        })
-
-      Promise.all([fetchMembers, fetchUsers]).finally(() => setLoading(false))
+      Promise.all([
+        supabase.from('members').select('*').order('preferred_name'),
+        supabase.from('pending_accounts').select('member_id'),
+        supabase.from('app_users').select('*').order('full_name'),
+      ]).then(([membersResult, pendingResult, usersResult]) => {
+        if (membersResult.error) {
+          console.error('[DataContext] Members fetch error:', membersResult.error)
+        } else if (membersResult.data) {
+          const pendingIds = new Set(
+            (pendingResult.data ?? []).map((r: { member_id: number }) => String(r.member_id))
+          )
+          setMembers(
+            (membersResult.data as DbMember[]).map((row) => ({
+              ...mapDbMember(row),
+              pending_account: pendingIds.has(String(row.id)),
+            }))
+          )
+        }
+        if (usersResult.error) {
+          console.error('[DataContext] app_users fetch error:', usersResult.error)
+        } else if (usersResult.data) {
+          setUsers(usersResult.data as AppUser[])
+        }
+      }).finally(() => setLoading(false))
     }
 
     fetchAll()
@@ -172,9 +172,31 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     return { error: null }
   }
 
+  const setPendingAccount = (memberId: string, value: boolean) => {
+    setMembers((prev) =>
+      prev.map((m) => (m.id === memberId ? { ...m, pending_account: value } : m))
+    )
+    if (value) {
+      supabase
+        .from('pending_accounts')
+        .insert({ member_id: Number(memberId) })
+        .then(({ error }) => {
+          if (error) console.error('[DataContext] setPendingAccount insert error:', error)
+        })
+    } else {
+      supabase
+        .from('pending_accounts')
+        .delete()
+        .eq('member_id', Number(memberId))
+        .then(({ error }) => {
+          if (error) console.error('[DataContext] setPendingAccount delete error:', error)
+        })
+    }
+  }
+
   return (
     <DataContext.Provider
-      value={{ members, households, users, loading, updateMember, updateHousehold, updateUser, addUser, deleteUser }}
+      value={{ members, households, users, loading, updateMember, updateHousehold, updateUser, addUser, deleteUser, setPendingAccount }}
     >
       {children}
     </DataContext.Provider>

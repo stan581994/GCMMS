@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Users, UserCog, X } from 'lucide-react'
+import { LayoutDashboard, Users, UserCog, Clock, X } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { isAdmin } from '@/lib/auth'
 import { Button } from '@/components/ui/button'
@@ -55,6 +55,24 @@ export function Sidebar({ onClose }: SidebarProps) {
             {label}
           </NavLink>
         ))}
+
+        {currentUser && (isAdmin(currentUser.role) || currentUser.role === 'clerk') && (
+          <NavLink
+            to="/pending-accounts"
+            onClick={onClose}
+            className={({ isActive }) =>
+              cn(
+                'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                isActive
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+              )
+            }
+          >
+            <Clock className="h-4 w-4 shrink-0" />
+            Pending Accounts
+          </NavLink>
+        )}
 
         {currentUser && isAdmin(currentUser.role) && (
           <NavLink

@@ -67,7 +67,7 @@ export function Layout() {
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       {/* Desktop sidebar */}
-      <aside className="hidden w-64 shrink-0 border-r lg:flex lg:flex-col">
+      <aside className="hidden w-64 shrink-0 border-r bg-card lg:flex lg:flex-col">
         <Sidebar />
       </aside>
 
@@ -81,7 +81,7 @@ export function Layout() {
       {/* Main area */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Topbar */}
-        <header className="flex h-14 shrink-0 items-center justify-between border-b px-4">
+        <header className="flex h-14 shrink-0 items-center justify-between border-b bg-card px-4">
           <Button
             variant="ghost"
             size="icon"

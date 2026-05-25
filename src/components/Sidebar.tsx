@@ -30,7 +30,7 @@ export function Sidebar({ onClose }: SidebarProps) {
           <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
             Ward
           </p>
-          <h1 className="text-lg font-bold leading-tight">Member Records</h1>
+          <h1 className="text-xl font-bold tracking-tight">Member Records</h1>
         </div>
         {onClose && (
           <Button variant="ghost" size="icon" onClick={onClose} className="lg:hidden">

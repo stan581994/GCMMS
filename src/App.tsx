@@ -11,6 +11,7 @@ import { Households } from '@/pages/Households'
 import { HouseholdDetail } from '@/pages/HouseholdDetail'
 import { UserManagement } from '@/pages/UserManagement'
 import { PendingAccounts } from '@/pages/PendingAccounts'
+import { CallingManagement } from '@/pages/CallingManagement'
 
 export default function App() {
   return (
@@ -41,6 +42,14 @@ export default function App() {
                 }
               />
               <Route path="/pending-accounts" element={<PendingAccounts />} />
+              <Route
+                path="/callings"
+                element={
+                  <ProtectedRoute requireRole="admin">
+                    <CallingManagement />
+                  </ProtectedRoute>
+                }
+              />
             </Route>
           </Routes>
         </BrowserRouter>

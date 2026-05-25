@@ -3,6 +3,7 @@ import { useAuth } from '@/context/AuthContext'
 import { getUserById } from '@/data/mock'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { StatusBadge } from '@/components/StatusBadge'
+import { ClerkTaskList } from '@/components/ClerkTaskList'
 import { Users, UserCheck, LogOut, ArrowRightLeft, HelpCircle } from 'lucide-react'
 import type { MemberStatus } from '@/types'
 
@@ -14,7 +15,7 @@ const STATUS_ICONS: Record<MemberStatus, React.ReactNode> = {
 }
 
 export function Dashboard() {
-  const { members } = useData()
+  const { members, clerkTasks, completeTask } = useData()
   const { currentUser } = useAuth()
 
   const counts = {
@@ -32,6 +33,23 @@ export function Dashboard() {
   const formatDate = (iso: string) => {
     const d = new Date(iso)
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  }
+
+  if (currentUser?.role === 'clerk') {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-xl font-bold">My Tasks</h2>
+          <p className="text-sm text-muted-foreground">
+            Welcome back, {currentUser.full_name}
+          </p>
+        </div>
+        <ClerkTaskList
+          tasks={clerkTasks}
+          onComplete={async (taskId) => { await completeTask(taskId) }}
+        />
+      </div>
+    )
   }
 
   return (

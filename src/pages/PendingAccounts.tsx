@@ -85,13 +85,13 @@ export function PendingAccounts() {
               <TableHead>Member Name</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Address</TableHead>
-              <TableHead className="text-right">Action</TableHead>
+              {!isAdmin(role) && <TableHead className="text-right">Action</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {pendingMembers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="py-10 text-center text-muted-foreground">
+                <TableCell colSpan={isAdmin(role) ? 3 : 4} className="py-10 text-center text-muted-foreground">
                   No pending members.
                 </TableCell>
               </TableRow>
@@ -105,16 +105,18 @@ export function PendingAccounts() {
                     <StatusBadge status={m.status} />
                   </TableCell>
                   <TableCell className="text-muted-foreground">{m.address ?? '—'}</TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleAccountCreated(m.id)}
-                    >
-                      <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
-                      Account Created
-                    </Button>
-                  </TableCell>
+                  {!isAdmin(role) && (
+                    <TableCell className="text-right">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleAccountCreated(m.id)}
+                      >
+                        <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
+                        Account Created
+                      </Button>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))
             )}
@@ -141,15 +143,17 @@ export function PendingAccounts() {
                   <StatusBadge status={m.status} />
                 </div>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="ml-3 shrink-0"
-                onClick={() => handleAccountCreated(m.id)}
-              >
-                <CheckCircle className="mr-1 h-4 w-4 text-green-600" />
-                Done
-              </Button>
+              {!isAdmin(role) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="ml-3 shrink-0"
+                  onClick={() => handleAccountCreated(m.id)}
+                >
+                  <CheckCircle className="mr-1 h-4 w-4 text-green-600" />
+                  Done
+                </Button>
+              )}
             </div>
           ))
         )}

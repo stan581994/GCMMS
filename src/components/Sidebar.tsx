@@ -27,9 +27,12 @@ export function Sidebar({ onClose }: SidebarProps) {
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between px-4 py-5">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-            Ward
-          </p>
+          <div className="flex items-center gap-1.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              Ward
+            </p>
+          </div>
           <h1 className="text-xl font-bold tracking-tight">Member Records</h1>
         </div>
         {onClose && (

@@ -10,6 +10,7 @@ import { MemberDetail } from '@/pages/MemberDetail'
 import { Households } from '@/pages/Households'
 import { HouseholdDetail } from '@/pages/HouseholdDetail'
 import { UserManagement } from '@/pages/UserManagement'
+import { PendingAccounts } from '@/pages/PendingAccounts'
 import { CallingManagement } from '@/pages/CallingManagement'
 
 export default function App() {
@@ -40,6 +41,7 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
+              <Route path="/pending-accounts" element={<PendingAccounts />} />
               <Route
                 path="/callings"
                 element={

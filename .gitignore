@@ -39,6 +39,7 @@ Thumbs.db
 # Supabase
 supabase/.branches/
 supabase/.temp/
+supabase/snippets/
 
 # Editor
 .vscode/

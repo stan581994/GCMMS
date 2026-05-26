@@ -9,9 +9,16 @@ import type { MemberStatus } from '@/types'
 
 const STATUS_ICONS: Record<MemberStatus, React.ReactNode> = {
   active: <UserCheck className="h-5 w-5 text-green-600" />,
-  moved_out: <LogOut className="h-5 w-5 text-orange-600" />,
+  moved_out: <LogOut className="h-5 w-5 text-amber-500" />,
   transferred: <ArrowRightLeft className="h-5 w-5 text-blue-600" />,
   unknown: <HelpCircle className="h-5 w-5 text-gray-500" />,
+}
+
+const STATUS_BORDER: Record<MemberStatus, string> = {
+  active: 'border-t-2 border-t-green-500',
+  moved_out: 'border-t-2 border-t-amber-400',
+  transferred: 'border-t-2 border-t-blue-400',
+  unknown: 'border-t-2 border-t-slate-400',
 }
 
 export function Dashboard() {
@@ -63,7 +70,7 @@ export function Dashboard() {
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        <Card>
+        <Card className="border-t-2 border-t-primary">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-xs font-medium text-muted-foreground">Total</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
@@ -75,7 +82,7 @@ export function Dashboard() {
         </Card>
 
         {(['active', 'moved_out', 'transferred', 'unknown'] as MemberStatus[]).map((s) => (
-          <Card key={s}>
+          <Card key={s} className={STATUS_BORDER[s]}>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-xs font-medium capitalize text-muted-foreground">
                 {s.replace('_', ' ')}

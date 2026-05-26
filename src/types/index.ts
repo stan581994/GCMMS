@@ -23,6 +23,7 @@ export interface Member {
   updated_by: string
   updated_at: string
   created_at: string
+  pending_account?: boolean
 }
 
 export interface AppUser {

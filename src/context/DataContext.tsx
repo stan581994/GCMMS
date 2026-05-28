@@ -196,7 +196,22 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       if (event === 'SIGNED_OUT') { setMembers(mockMembers); setUsers([]); setCallings([]); setClerkTasks([]); setActivityLog([]) }
     })
 
-    return () => subscription.unsubscribe()
+    const taskChannel = supabase
+      .channel('clerk_tasks_updates')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'clerk_tasks' },
+        (payload) => {
+          const updated = mapDbClerkTask(payload.new as Record<string, unknown>)
+          setClerkTasks((prev) => prev.map((t) => t.id === updated.id ? updated : t))
+        }
+      )
+      .subscribe()
+
+    return () => {
+      subscription.unsubscribe()
+      supabase.removeChannel(taskChannel)
+    }
   }, [])
 
   const logActivity = async (action: string, description: string) => {

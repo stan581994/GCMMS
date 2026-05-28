@@ -2,7 +2,7 @@ import { useData } from '@/context/DataContext'
 import { useAuth } from '@/context/AuthContext'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ClerkTaskList } from '@/components/ClerkTaskList'
-import { Users, UserCheck, LogOut, ArrowRightLeft, HelpCircle } from 'lucide-react'
+import { Users, UserCheck, LogOut, ArrowRightLeft, HelpCircle, CheckCircle2 } from 'lucide-react'
 import type { MemberStatus } from '@/types'
 
 const STATUS_ICONS: Record<MemberStatus, React.ReactNode> = {
@@ -30,6 +30,12 @@ export function Dashboard() {
     transferred: members.filter((m) => m.status === 'transferred').length,
     unknown: members.filter((m) => m.status === 'unknown').length,
   }
+
+  const recentCompletions = [...clerkTasks]
+    .filter((t) => t.is_complete && t.completed_at)
+    .sort((a, b) => new Date(b.completed_at!).getTime() - new Date(a.completed_at!).getTime())
+    .slice(0, 5)
+
 
   const formatDate = (iso: string) => {
     const d = new Date(iso)
@@ -119,6 +125,34 @@ export function Dashboard() {
                 <span className="ml-3 shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                   {entry.action}
                 </span>
+              </div>
+            ))
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Clerk Activity */}
+      <Card>
+        <CardHeader className="flex flex-row items-center gap-2 pb-3">
+          <CheckCircle2 className="h-4 w-4 text-green-600" />
+          <CardTitle className="text-base">Clerk Activity</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {recentCompletions.length === 0 ? (
+            <p className="px-6 pb-4 text-sm text-muted-foreground">No tasks completed yet.</p>
+          ) : (
+            recentCompletions.map((task) => (
+              <div
+                key={task.id}
+                className="flex items-start justify-between border-b px-6 py-3 last:border-0"
+              >
+                <div className="min-w-0 flex-1 pr-4">
+                  <p className="text-sm">{task.description}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Recorded · {task.completed_at ? formatDate(task.completed_at) : '—'}
+                  </p>
+                </div>
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-green-500" />
               </div>
             ))
           )}

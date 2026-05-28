@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { mockMembers, mockHouseholds } from '@/data/mock'
-import type { Member, Household, AppUser, MemberStatus, UserRole, Calling, ClerkTask } from '@/types'
+import type { Member, Household, AppUser, MemberStatus, UserRole, Calling, ClerkTask, ActivityLog } from '@/types'
 import { supabase } from '@/lib/supabase'
 
 interface DbMember {
@@ -84,23 +84,33 @@ interface ReleaseCallingInput {
   released_date: string
 }
 
+interface AddMemberInput {
+  first_name: string
+  last_name: string
+  status: MemberStatus
+  address_street1?: string
+  address_city?: string
+  assigned_to?: string | null
+}
+
 interface DataContextType {
   members: Member[]
   households: Household[]
   users: AppUser[]
   callings: Calling[]
   clerkTasks: ClerkTask[]
+  activityLog: ActivityLog[]
   loading: boolean
   updateMember: (id: string, updates: Partial<Member>) => void
   updateHousehold: (id: string, updates: Partial<Household>) => void
   updateUser: (id: string, updates: Partial<AppUser>) => void
   addUser: (name: string, email: string, password: string, role: UserRole) => Promise<{ error: string | null }>
   deleteUser: (id: string) => Promise<{ error: string | null }>
+  addMember: (input: AddMemberInput) => Promise<{ error: string | null }>
   setPendingAccount: (memberId: string, value: boolean) => void
   assignCalling: (input: AssignCallingInput) => Promise<{ error: string | null }>
   releaseCalling: (input: ReleaseCallingInput) => Promise<{ error: string | null }>
   completeTask: (taskId: string) => Promise<{ error: string | null }>
-
 }
 
 const DataContext = createContext<DataContextType | null>(null)
@@ -111,6 +121,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [users, setUsers] = useState<AppUser[]>([])
   const [callings, setCallings] = useState<Calling[]>([])
   const [clerkTasks, setClerkTasks] = useState<ClerkTask[]>([])
+  const [activityLog, setActivityLog] = useState<ActivityLog[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -165,18 +176,40 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           else if (data) setClerkTasks((data as Record<string, unknown>[]).map(mapDbClerkTask))
         })
 
-      Promise.all([fetchMembers, fetchUsers, fetchCallings, fetchClerkTasks]).finally(() => setLoading(false))
+      const fetchActivityLog = supabase
+        .from('activity_log')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50)
+        .then(({ data, error }) => {
+          if (error) console.error('[DataContext] activity_log fetch error:', error)
+          else if (data) setActivityLog(data as ActivityLog[])
+        })
+
+      Promise.all([fetchMembers, fetchUsers, fetchCallings, fetchClerkTasks, fetchActivityLog]).finally(() => setLoading(false))
     }
 
     fetchAll()
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') fetchAll()
-      if (event === 'SIGNED_OUT') { setMembers(mockMembers); setUsers([]); setCallings([]); setClerkTasks([]) }
+      if (event === 'SIGNED_OUT') { setMembers(mockMembers); setUsers([]); setCallings([]); setClerkTasks([]); setActivityLog([]) }
     })
 
     return () => subscription.unsubscribe()
   }, [])
+
+  const logActivity = async (action: string, description: string) => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const appUser = users.find((u) => u.id === user.id)
+    const { data, error } = await supabase
+      .from('activity_log')
+      .insert({ action, description, performed_by: user.id, performed_by_name: appUser?.full_name ?? '' })
+      .select()
+      .single()
+    if (!error && data) setActivityLog((prev) => [data as ActivityLog, ...prev.slice(0, 49)])
+  }
 
   const updateMember = (id: string, updates: Partial<Member>) => {
     setMembers((prev) =>
@@ -188,6 +221,18 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const current = members.find((m) => m.id === id)
     if (!current) return
     const merged = { ...current, ...updates }
+
+    const memberName = `${current.last_name}, ${current.first_name}`
+
+    if ('status' in updates && updates.status !== current.status) {
+      logActivity('Status Changed', `${memberName}'s status was changed to ${REVERSE_STATUS_MAP[updates.status!]}`)
+    }
+    if ('assigned_to' in updates && updates.assigned_to !== current.assigned_to) {
+      const ministerName = updates.assigned_to
+        ? (users.find((u) => u.id === updates.assigned_to)?.full_name ?? updates.assigned_to)
+        : 'no one'
+      logActivity('Ministering Assigned', `${memberName} was assigned to ${ministerName}`)
+    }
 
     supabase
       .from('members')
@@ -207,8 +252,21 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const updateHousehold = (id: string, updates: Partial<Household>) =>
     setHouseholds((prev) => prev.map((h) => (h.id === id ? { ...h, ...updates } : h)))
 
-  const updateUser = (id: string, updates: Partial<AppUser>) =>
+  const updateUser = (id: string, updates: Partial<AppUser>) => {
+    const target = users.find((u) => u.id === id)
     setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, ...updates } : u)))
+    supabase
+      .from('app_users')
+      .update(updates)
+      .eq('id', id)
+      .then(({ error }) => {
+        if (error) console.error('[DataContext] updateUser error:', error)
+      })
+    if (target && updates.role) {
+      const roleLabel = updates.role.replace('_', ' ')
+      logActivity('Role Updated', `${target.full_name}'s role was updated to ${roleLabel}`)
+    }
+  }
 
   const addUser = async (name: string, email: string, password: string, role: UserRole): Promise<{ error: string | null }> => {
     const { data, error } = await supabase.rpc('create_managed_user', {
@@ -224,17 +282,47 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       ...prev,
       { id: created.id, full_name: name, email, role, is_active: true, created_at: new Date().toISOString() },
     ])
+    logActivity('User Created', `New user ${name} was created with role ${role.replace('_', ' ')}`)
     return { error: null }
   }
 
   const deleteUser = async (id: string): Promise<{ error: string | null }> => {
+    const target = users.find((u) => u.id === id)
     const { error } = await supabase.rpc('delete_managed_user', { p_user_id: id })
     if (error) return { error: error.message }
     setUsers((prev) => prev.filter((u) => u.id !== id))
+    if (target) logActivity('User Deleted', `User ${target.full_name} was deleted`)
+    return { error: null }
+  }
+
+  const addMember = async (input: AddMemberInput): Promise<{ error: string | null }> => {
+    const now = new Date().toISOString()
+    const { data, error } = await supabase
+      .from('members')
+      .insert({
+        preferred_name: `${input.last_name}, ${input.first_name}`,
+        status: REVERSE_STATUS_MAP[input.status],
+        address_street1: input.address_street1 || null,
+        address_street2: null,
+        address_city: input.address_city || null,
+        assigned_person: input.assigned_to || null,
+        new_address: null,
+        created_at: now,
+        updated_at: now,
+      })
+      .select()
+      .single()
+
+    if (error || !data) return { error: error?.message ?? 'Failed to add member' }
+
+    setMembers((prev) => [...prev, mapDbMember(data as DbMember)])
+    logActivity('Member Added', `${input.last_name}, ${input.first_name} was added as a new member`)
     return { error: null }
   }
 
   const setPendingAccount = (memberId: string, value: boolean) => {
+    const member = members.find((m) => m.id === memberId)
+    const memberName = member ? `${member.last_name}, ${member.first_name}` : `Member #${memberId}`
     setMembers((prev) =>
       prev.map((m) => (m.id === memberId ? { ...m, pending_account: value } : m))
     )
@@ -245,6 +333,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         .then(({ error }) => {
           if (error) console.error('[DataContext] setPendingAccount insert error:', error)
         })
+      logActivity('Pending Account Added', `${memberName} was flagged for LDS Account creation`)
     } else {
       supabase
         .from('pending_accounts')
@@ -253,6 +342,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         .then(({ error }) => {
           if (error) console.error('[DataContext] setPendingAccount delete error:', error)
         })
+      logActivity('Account Created', `LDS Account confirmed as created for ${memberName}`)
     }
   }
 
@@ -295,6 +385,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
     setCallings((prev) => [mapDbCalling(callingData as Record<string, unknown>), ...prev])
     if (taskData) setClerkTasks((prev) => [mapDbClerkTask(taskData as Record<string, unknown>), ...prev])
+    logActivity('Calling Assigned', `${memberName} was called as ${input.position}`)
 
     return { error: null }
   }
@@ -339,11 +430,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       )
     )
     if (taskData) setClerkTasks((prev) => [mapDbClerkTask(taskData as Record<string, unknown>), ...prev])
+    logActivity('Calling Released', `${memberName} was released from ${calling?.position ?? 'calling'}`)
 
     return { error: null }
   }
 
   const completeTask = async (taskId: string): Promise<{ error: string | null }> => {
+    const task = clerkTasks.find((t) => t.id === taskId)
     const now = new Date().toISOString()
     const { error } = await supabase
       .from('clerk_tasks')
@@ -355,14 +448,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setClerkTasks((prev) =>
       prev.map((t) => (t.id === taskId ? { ...t, is_complete: true, completed_at: now } : t))
     )
+    if (task) logActivity('Calling Confirmed', `Clerk confirmed: ${task.description}`)
     return { error: null }
   }
 
   return (
     <DataContext.Provider
       value={{
-        members, households, users, callings, clerkTasks, loading,
-        updateMember, updateHousehold, updateUser, addUser, deleteUser,
+        members, households, users, callings, clerkTasks, activityLog, loading,
+        updateMember, updateHousehold, updateUser, addUser, deleteUser, addMember,
         setPendingAccount, assignCalling, releaseCalling, completeTask,
       }}
     >

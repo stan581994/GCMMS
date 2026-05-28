@@ -61,3 +61,12 @@ export interface ClerkTask {
   created_by: string
   created_at: string
 }
+
+export interface ActivityLog {
+  id: string
+  action: string
+  description: string
+  performed_by: string | null
+  performed_by_name: string
+  created_at: string
+}

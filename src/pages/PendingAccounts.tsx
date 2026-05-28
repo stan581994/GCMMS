@@ -30,7 +30,7 @@ export function PendingAccounts() {
 
   if (!currentUser) return null
   const role = currentUser.role
-  if (!isAdmin(role) && role !== 'clerk') return <Navigate to="/dashboard" replace />
+  if (!isAdmin(role) && role !== 'account_specialist') return <Navigate to={role === 'clerk' ? '/dashboard' : '/members'} replace />
 
   const pendingMembers = useMemo(
     () => members.filter((m) => m.pending_account === true),

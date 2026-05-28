@@ -21,6 +21,7 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
 export function Sidebar({ onClose }: SidebarProps) {
   const { currentUser } = useAuth()
   const isClerk = currentUser?.role === 'clerk'
+  const isAccountSpecialist = currentUser?.role === 'account_specialist'
   const admin = currentUser && isAdmin(currentUser.role)
 
   return (
@@ -45,19 +46,21 @@ export function Sidebar({ onClose }: SidebarProps) {
       <Separator />
 
       <nav className="flex-1 space-y-1 px-2 py-4">
-        <NavLink to="/dashboard" onClick={onClose} className={navLinkClass}>
-          <LayoutDashboard className="h-4 w-4 shrink-0" />
-          Dashboard
-        </NavLink>
+        {(admin || isClerk) && (
+          <NavLink to="/dashboard" onClick={onClose} className={navLinkClass}>
+            <LayoutDashboard className="h-4 w-4 shrink-0" />
+            Dashboard
+          </NavLink>
+        )}
 
-        {!isClerk && (
+        {!isClerk && !isAccountSpecialist && (
           <NavLink to="/members" onClick={onClose} className={navLinkClass}>
             <Users className="h-4 w-4 shrink-0" />
             Members
           </NavLink>
         )}
 
-        {currentUser && (isAdmin(currentUser.role) || currentUser.role === 'clerk') && (
+        {currentUser && (isAdmin(currentUser.role) || isAccountSpecialist) && (
           <NavLink to="/pending-accounts" onClick={onClose} className={navLinkClass}>
             <Clock className="h-4 w-4 shrink-0" />
             Pending Accounts

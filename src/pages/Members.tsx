@@ -45,11 +45,6 @@ export function Members() {
   const userCanEdit = currentUser ? canEdit(currentUser.role) : false
   const isMinistering = currentUser?.role === 'ministering'
 
-  useEffect(() => {
-    console.log('[Members] loading:', loading)
-    console.log('[Members] members count:', members.length)
-    console.log('[Members] members sample (first 3):', members.slice(0, 3))
-  }, [members, loading])
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<MemberStatus | 'all'>('all')
   const [householdFilter, setHouseholdFilter] = useState<string>('all')
@@ -365,12 +360,24 @@ export function Members() {
             </div>
             <div className="space-y-1">
               <Label htmlFor="assigned_to">Assigned Person</Label>
-              <Input
-                id="assigned_to"
-                value={form.assigned_to}
-                onChange={(e) => setForm((f) => ({ ...f, assigned_to: e.target.value }))}
-                placeholder="Name of assigned person"
-              />
+              <Select
+                value={form.assigned_to || 'none'}
+                onValueChange={(v) => setForm((f) => ({ ...f, assigned_to: v === 'none' ? '' : v }))}
+              >
+                <SelectTrigger id="assigned_to">
+                  <SelectValue placeholder="Select a ministering worker" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">— Unassigned —</SelectItem>
+                  {users
+                    .filter((u) => u.role === 'ministering' && u.is_active)
+                    .map((u) => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.full_name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
             </div>
             {formError && <p className="text-sm text-destructive">{formError}</p>}
           </div>

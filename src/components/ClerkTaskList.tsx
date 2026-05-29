@@ -2,14 +2,15 @@ import { Check } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import type { ClerkTask } from '@/types'
+import type { ClerkTask, ChildRecordTask } from '@/types'
 
 interface ClerkTaskListProps {
-  tasks: ClerkTask[]
+  tasks: (ClerkTask | ChildRecordTask)[]
   onComplete: (taskId: string) => Promise<void>
+  title?: string
 }
 
-export function ClerkTaskList({ tasks, onComplete }: ClerkTaskListProps) {
+export function ClerkTaskList({ tasks, onComplete, title = 'Pending Tasks' }: ClerkTaskListProps) {
   const pending = tasks.filter((t) => !t.is_complete)
   const completed = tasks.filter((t) => t.is_complete)
 
@@ -21,7 +22,7 @@ export function ClerkTaskList({ tasks, onComplete }: ClerkTaskListProps) {
       {/* Pending tasks */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-3">
-          <CardTitle className="text-base">Pending Tasks</CardTitle>
+          <CardTitle className="text-base">{title}</CardTitle>
           {pending.length > 0 && (
             <Badge className="bg-amber-100 text-amber-800 border-amber-200" variant="outline">
               {pending.length}

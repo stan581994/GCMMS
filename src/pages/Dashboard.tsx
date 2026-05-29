@@ -1,11 +1,11 @@
 import { useData } from '@/context/DataContext'
 import { useAuth } from '@/context/AuthContext'
+import { useNavigate } from 'react-router-dom'
 import { getUserById } from '@/data/mock'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { StatusBadge } from '@/components/StatusBadge'
-import { ClerkTaskList } from '@/components/ClerkTaskList'
-import { Users, UserCheck, LogOut, ArrowRightLeft, HelpCircle, CheckCircle2 } from 'lucide-react'
-import type { MemberStatus } from '@/types'
+import { Users, UserCheck, LogOut, ArrowRightLeft, HelpCircle, CheckCircle2, BookOpen, Baby } from 'lucide-react'
+import type { MemberStatus, ChildRecordTask } from '@/types'
 
 const STATUS_ICONS: Record<MemberStatus, React.ReactNode> = {
   active: <UserCheck className="h-5 w-5 text-green-600" />,
@@ -15,8 +15,9 @@ const STATUS_ICONS: Record<MemberStatus, React.ReactNode> = {
 }
 
 export function Dashboard() {
-  const { members, clerkTasks, completeTask } = useData()
+  const { members, clerkTasks, childRecordTasks } = useData()
   const { currentUser } = useAuth()
+  const navigate = useNavigate()
 
   const counts = {
     total: members.length,
@@ -30,8 +31,10 @@ export function Dashboard() {
     .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
     .slice(0, 10)
 
-  const recentCompletions = [...clerkTasks]
-    .filter((t) => t.is_complete && t.completed_at)
+  const recentCompletions = [
+    ...[...clerkTasks].filter((t) => t.is_complete && t.completed_at),
+    ...[...childRecordTasks].filter((t): t is ChildRecordTask & { completed_at: string } => t.is_complete && !!t.completed_at),
+  ]
     .sort((a, b) => new Date(b.completed_at!).getTime() - new Date(a.completed_at!).getTime())
     .slice(0, 5)
 
@@ -41,18 +44,43 @@ export function Dashboard() {
   }
 
   if (currentUser?.role === 'clerk') {
+    const pendingCallings = clerkTasks.filter((t) => !t.is_complete).length
+    const pendingChildRecords = childRecordTasks.filter((t) => !t.is_complete).length
+
     return (
       <div className="space-y-6">
         <div>
-          <h2 className="text-xl font-bold">My Tasks</h2>
-          <p className="text-sm text-muted-foreground">
-            Welcome back, {currentUser.full_name}
-          </p>
+          <h2 className="text-xl font-bold">Dashboard</h2>
+          <p className="text-sm text-muted-foreground">Welcome back, {currentUser.full_name}</p>
         </div>
-        <ClerkTaskList
-          tasks={clerkTasks}
-          onComplete={async (taskId) => { await completeTask(taskId) }}
-        />
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <button onClick={() => navigate('/clerk/callings')} className="text-left">
+            <Card className="hover:bg-accent/50 transition-colors cursor-pointer">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Callings</CardTitle>
+                <BookOpen className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold">{pendingCallings}</p>
+                <p className="text-xs text-muted-foreground">pending task{pendingCallings !== 1 ? 's' : ''}</p>
+              </CardContent>
+            </Card>
+          </button>
+
+          <button onClick={() => navigate('/clerk/child-records')} className="text-left">
+            <Card className="hover:bg-accent/50 transition-colors cursor-pointer">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Child Records</CardTitle>
+                <Baby className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold">{pendingChildRecords}</p>
+                <p className="text-xs text-muted-foreground">pending task{pendingChildRecords !== 1 ? 's' : ''}</p>
+              </CardContent>
+            </Card>
+          </button>
+        </div>
       </div>
     )
   }

@@ -60,3 +60,42 @@ export interface ClerkTask {
   created_by: string
   created_at: string
 }
+
+export interface ChildRecord {
+  id: string
+  child_name: string
+  gender: 'male' | 'female'
+  birth_date: string
+  place_of_birth: string
+  born_in_covenant: boolean
+  address: string | null
+  father_name: string | null
+  father_is_member: boolean
+  father_record_or_birthdate: string | null
+  mother_maiden_name: string | null
+  mother_is_member: boolean
+  mother_record_or_birthdate: string | null
+  parents_ward_branch: string | null
+  parents_unit_number: string | null
+  guardian_name: string | null
+  guardian_is_member: boolean
+  guardian_record_or_birthdate: string | null
+  blessing_date: string | null
+  blessing_performer_name: string | null
+  blessing_priesthood_office: string | null
+  blessing_performer_record_or_birthdate: string | null
+  created_by: string
+  created_at: string
+  updated_at: string
+}
+
+export interface ChildRecordTask {
+  id: string
+  child_record_id: string
+  task_type: 'child_record_created'
+  description: string
+  is_complete: boolean
+  completed_at: string | null
+  created_by: string
+  created_at: string
+}

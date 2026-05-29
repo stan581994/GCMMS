@@ -28,7 +28,7 @@ create table public.child_records (
   blessing_priesthood_office text        null,
   blessing_performer_record_or_birthdate text null,
 
-  created_by                uuid         not null references auth.users(id) on delete set null,
+  created_by                uuid         not null references auth.users(id) on delete restrict,
   created_at                timestamptz  not null default now(),
   updated_at                timestamptz  not null default now()
 );

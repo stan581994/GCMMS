@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { AuthProvider } from '@/context/AuthContext'
+import { AuthProvider, useAuth } from '@/context/AuthContext'
 import { DataProvider } from '@/context/DataContext'
 import { Layout } from '@/components/Layout'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
@@ -12,6 +12,13 @@ import { HouseholdDetail } from '@/pages/HouseholdDetail'
 import { UserManagement } from '@/pages/UserManagement'
 import { PendingAccounts } from '@/pages/PendingAccounts'
 import { CallingManagement } from '@/pages/CallingManagement'
+
+function DefaultRedirect() {
+  const { currentUser } = useAuth()
+  const role = currentUser?.role
+  const to = role === 'admin' || role === 'clerk' ? '/dashboard' : role === 'account_specialist' ? '/pending-accounts' : '/members'
+  return <Navigate to={to} replace />
+}
 
 export default function App() {
   return (
@@ -27,12 +34,19 @@ export default function App() {
                 </ProtectedRoute>
               }
             >
-              <Route index element={<Navigate to="/dashboard" replace />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/members" element={<Members />} />
-              <Route path="/members/:id" element={<MemberDetail />} />
-              <Route path="/households" element={<Households />} />
-              <Route path="/households/:id" element={<HouseholdDetail />} />
+              <Route index element={<DefaultRedirect />} />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute allowedRoles={['admin', 'clerk']}>
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="/members" element={<ProtectedRoute blockedRoles={['account_specialist']}><Members /></ProtectedRoute>} />
+              <Route path="/members/:id" element={<ProtectedRoute blockedRoles={['account_specialist']}><MemberDetail /></ProtectedRoute>} />
+              <Route path="/households" element={<ProtectedRoute blockedRoles={['account_specialist']}><Households /></ProtectedRoute>} />
+              <Route path="/households/:id" element={<ProtectedRoute blockedRoles={['account_specialist']}><HouseholdDetail /></ProtectedRoute>} />
               <Route
                 path="/users"
                 element={
@@ -41,7 +55,7 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route path="/pending-accounts" element={<PendingAccounts />} />
+              <Route path="/pending-accounts" element={<ProtectedRoute blockedRoles={['clerk']}><PendingAccounts /></ProtectedRoute>} />
               <Route
                 path="/callings"
                 element={

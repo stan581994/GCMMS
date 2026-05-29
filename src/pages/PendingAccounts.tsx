@@ -28,16 +28,16 @@ export function PendingAccounts() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [search, setSearch] = useState('')
 
-  if (!currentUser) return null
-  const role = currentUser.role
-  if (!isAdmin(role) && role !== 'clerk') return <Navigate to="/dashboard" replace />
+  const role = currentUser?.role
+  const allowed = role && (isAdmin(role) || role === 'account_specialist')
 
   const pendingMembers = useMemo(
-    () => members.filter((m) => m.pending_account === true),
-    [members]
+    () => (allowed ? members.filter((m) => m.pending_account === true) : []),
+    [allowed, members]
   )
 
   const availableMembers = useMemo(() => {
+    if (!allowed) return []
     const q = search.toLowerCase()
     return members
       .filter((m) => !m.pending_account)
@@ -48,7 +48,10 @@ export function PendingAccounts() {
           `${m.last_name} ${m.first_name}`.toLowerCase().includes(q)
       )
       .sort((a, b) => a.last_name.localeCompare(b.last_name))
-  }, [members, search])
+  }, [allowed, members, search])
+
+  if (!currentUser) return null
+  if (!allowed) return <Navigate to={role === 'clerk' ? '/dashboard' : '/members'} replace />
 
   const handleAddMember = (memberId: string) => {
     setPendingAccount(memberId, true)

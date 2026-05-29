@@ -45,6 +45,7 @@ const roleBadgeClass: Record<UserRole, string> = {
 }
 
 const addableRoles: { value: UserRole; label: string }[] = [
+  { value: 'account_specialist', label: 'Account Specialist' },
   { value: 'clerk', label: 'Clerk' },
   { value: 'ministering', label: 'Ministering' },
 ]

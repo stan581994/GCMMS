@@ -1,8 +1,6 @@
 import { useData } from '@/context/DataContext'
 import { useAuth } from '@/context/AuthContext'
-import { getUserById } from '@/data/mock'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { StatusBadge } from '@/components/StatusBadge'
 import { ClerkTaskList } from '@/components/ClerkTaskList'
 import { Users, UserCheck, LogOut, ArrowRightLeft, HelpCircle } from 'lucide-react'
 import type { MemberStatus } from '@/types'
@@ -22,7 +20,7 @@ const STATUS_BORDER: Record<MemberStatus, string> = {
 }
 
 export function Dashboard() {
-  const { members, clerkTasks, completeTask } = useData()
+  const { members, clerkTasks, activityLog, completeTask } = useData()
   const { currentUser } = useAuth()
 
   const counts = {
@@ -33,13 +31,14 @@ export function Dashboard() {
     unknown: members.filter((m) => m.status === 'unknown').length,
   }
 
-  const recentUpdates = [...members]
-    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
-    .slice(0, 10)
-
   const formatDate = (iso: string) => {
     const d = new Date(iso)
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  }
+
+  const formatTime = (iso: string) => {
+    const d = new Date(iso)
+    return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
   }
 
   if (currentUser?.role === 'clerk') {
@@ -102,26 +101,27 @@ export function Dashboard() {
         <CardHeader>
           <CardTitle className="text-base">Recent Updates</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3 p-0">
-          {recentUpdates.map((m) => {
-            const editor = getUserById(m.updated_by)
-            return (
+        <CardContent className="p-0">
+          {activityLog.length === 0 ? (
+            <p className="px-6 py-8 text-center text-sm text-muted-foreground">No activity yet.</p>
+          ) : (
+            activityLog.map((entry) => (
               <div
-                key={m.id}
-                className="flex items-center justify-between border-b px-6 py-3 last:border-0"
+                key={entry.id}
+                className="flex items-start justify-between border-b px-6 py-3 last:border-0"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium">
-                    {m.last_name}, {m.first_name}
-                  </p>
+                  <p className="truncate font-medium">{entry.description}</p>
                   <p className="truncate text-xs text-muted-foreground">
-                    Updated by {editor?.full_name ?? 'Unknown'} · {formatDate(m.updated_at)}
+                    {entry.performed_by_name} · {formatDate(entry.created_at)} at {formatTime(entry.created_at)}
                   </p>
                 </div>
-                <StatusBadge status={m.status} />
+                <span className="ml-3 shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                  {entry.action}
+                </span>
               </div>
-            )
-          })}
+            ))
+          )}
         </CardContent>
       </Card>
     </div>

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { mockMembers, mockHouseholds } from '@/data/mock'
-import type { Member, Household, AppUser, MemberStatus, UserRole, Calling, ClerkTask, ActivityLog } from '@/types'
+import type { Member, Household, AppUser, MemberStatus, UserRole, Calling, ClerkTask, ActivityLog, ChildRecord, ChildRecordTask } from '@/types'
 import { supabase } from '@/lib/supabase'
 
 interface DbMember {
@@ -72,6 +72,21 @@ function mapDbClerkTask(row: Record<string, unknown>): ClerkTask {
   }
 }
 
+function mapDbChildRecord(row: Record<string, unknown>): ChildRecord {
+  return {
+    ...(row as Omit<ChildRecord, 'id'>),
+    id: String(row.id),
+  }
+}
+
+function mapDbChildRecordTask(row: Record<string, unknown>): ChildRecordTask {
+  return {
+    ...(row as Omit<ChildRecordTask, 'id' | 'child_record_id'>),
+    id: String(row.id),
+    child_record_id: String(row.child_record_id),
+  }
+}
+
 interface AssignCallingInput {
   member_id: string
   position: string
@@ -93,6 +108,30 @@ interface AddMemberInput {
   assigned_to?: string | null
 }
 
+export interface SubmitChildRecordInput {
+  child_name: string
+  gender: 'male' | 'female'
+  birth_date: string
+  place_of_birth: string
+  born_in_covenant: boolean
+  address: string | null
+  father_name: string | null
+  father_is_member: boolean
+  father_record_or_birthdate: string | null
+  mother_maiden_name: string | null
+  mother_is_member: boolean
+  mother_record_or_birthdate: string | null
+  parents_ward_branch: string | null
+  parents_unit_number: string | null
+  guardian_name: string | null
+  guardian_is_member: boolean
+  guardian_record_or_birthdate: string | null
+  blessing_date: string | null
+  blessing_performer_name: string | null
+  blessing_priesthood_office: string | null
+  blessing_performer_record_or_birthdate: string | null
+}
+
 interface DataContextType {
   members: Member[]
   households: Household[]
@@ -100,6 +139,8 @@ interface DataContextType {
   callings: Calling[]
   clerkTasks: ClerkTask[]
   activityLog: ActivityLog[]
+  childRecords: ChildRecord[]
+  childRecordTasks: ChildRecordTask[]
   loading: boolean
   updateMember: (id: string, updates: Partial<Member>) => void
   updateHousehold: (id: string, updates: Partial<Household>) => void
@@ -111,6 +152,8 @@ interface DataContextType {
   assignCalling: (input: AssignCallingInput) => Promise<{ error: string | null }>
   releaseCalling: (input: ReleaseCallingInput) => Promise<{ error: string | null }>
   completeTask: (taskId: string) => Promise<{ error: string | null }>
+  submitChildRecord: (input: SubmitChildRecordInput) => Promise<{ error: string | null }>
+  completeChildRecordTask: (taskId: string) => Promise<{ error: string | null }>
 }
 
 const DataContext = createContext<DataContextType | null>(null)
@@ -122,6 +165,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [callings, setCallings] = useState<Calling[]>([])
   const [clerkTasks, setClerkTasks] = useState<ClerkTask[]>([])
   const [activityLog, setActivityLog] = useState<ActivityLog[]>([])
+  const [childRecords, setChildRecords] = useState<ChildRecord[]>([])
+  const [childRecordTasks, setChildRecordTasks] = useState<ChildRecordTask[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -186,14 +231,32 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           else if (data) setActivityLog(data as ActivityLog[])
         })
 
-      Promise.all([fetchMembers, fetchUsers, fetchCallings, fetchClerkTasks, fetchActivityLog]).finally(() => setLoading(false))
+      const fetchChildRecords = supabase
+        .from('child_records')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .then(({ data, error }) => {
+          if (error) console.error('[DataContext] child_records fetch error:', error)
+          else if (data) setChildRecords((data as Record<string, unknown>[]).map(mapDbChildRecord))
+        })
+
+      const fetchChildRecordTasks = supabase
+        .from('child_record_tasks')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .then(({ data, error }) => {
+          if (error) console.error('[DataContext] child_record_tasks fetch error:', error)
+          else if (data) setChildRecordTasks((data as Record<string, unknown>[]).map(mapDbChildRecordTask))
+        })
+
+      Promise.all([fetchMembers, fetchUsers, fetchCallings, fetchClerkTasks, fetchActivityLog, fetchChildRecords, fetchChildRecordTasks]).finally(() => setLoading(false))
     }
 
     fetchAll()
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') fetchAll()
-      if (event === 'SIGNED_OUT') { setMembers(mockMembers); setUsers([]); setCallings([]); setClerkTasks([]); setActivityLog([]) }
+      if (event === 'SIGNED_OUT') { setMembers(mockMembers); setUsers([]); setCallings([]); setClerkTasks([]); setActivityLog([]); setChildRecords([]); setChildRecordTasks([]) }
     })
 
     const taskChannel = supabase
@@ -208,9 +271,22 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       )
       .subscribe()
 
+    const childRecordTaskChannel = supabase
+      .channel('child_record_tasks_updates')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'child_record_tasks' },
+        (payload) => {
+          const updated = mapDbChildRecordTask(payload.new as Record<string, unknown>)
+          setChildRecordTasks((prev) => prev.map((t) => t.id === updated.id ? updated : t))
+        }
+      )
+      .subscribe()
+
     return () => {
       subscription.unsubscribe()
       supabase.removeChannel(taskChannel)
+      supabase.removeChannel(childRecordTaskChannel)
     }
   }, [])
 
@@ -456,6 +532,54 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     return { error: null }
   }
 
+  const submitChildRecord = async (input: SubmitChildRecordInput): Promise<{ error: string | null }> => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Not authenticated' }
+
+    const { data: recordData, error: recordErr } = await supabase
+      .from('child_records')
+      .insert({ ...input, created_by: user.id })
+      .select()
+      .single()
+
+    if (recordErr || !recordData) return { error: recordErr?.message ?? 'Failed to create child record' }
+
+    const description = `Record child blessing: ${input.child_name}${input.blessing_date ? `, blessed ${input.blessing_date}` : ''}`
+
+    const { data: taskData, error: taskErr } = await supabase
+      .from('child_record_tasks')
+      .insert({
+        child_record_id: recordData.id,
+        task_type: 'child_record_created',
+        description,
+        created_by: user.id,
+      })
+      .select()
+      .single()
+
+    if (taskErr) return { error: taskErr.message }
+
+    setChildRecords((prev) => [mapDbChildRecord(recordData as Record<string, unknown>), ...prev])
+    if (taskData) setChildRecordTasks((prev) => [mapDbChildRecordTask(taskData as Record<string, unknown>), ...prev])
+
+    return { error: null }
+  }
+
+  const completeChildRecordTask = async (taskId: string): Promise<{ error: string | null }> => {
+    const now = new Date().toISOString()
+    const { error } = await supabase
+      .from('child_record_tasks')
+      .update({ is_complete: true, completed_at: now })
+      .eq('id', Number(taskId))
+
+    if (error) return { error: error.message }
+
+    setChildRecordTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? { ...t, is_complete: true, completed_at: now } : t))
+    )
+    return { error: null }
+  }
+
   const completeTask = async (taskId: string): Promise<{ error: string | null }> => {
     const task = clerkTasks.find((t) => t.id === taskId)
     const now = new Date().toISOString()
@@ -476,9 +600,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   return (
     <DataContext.Provider
       value={{
-        members, households, users, callings, clerkTasks, activityLog, loading,
+        members, households, users, callings, clerkTasks, activityLog, childRecords, childRecordTasks, loading,
         updateMember, updateHousehold, updateUser, addUser, deleteUser, addMember,
         setPendingAccount, assignCalling, releaseCalling, completeTask,
+        submitChildRecord, completeChildRecordTask,
       }}
     >
       {children}

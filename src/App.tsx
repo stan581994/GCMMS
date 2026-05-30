@@ -12,6 +12,9 @@ import { HouseholdDetail } from '@/pages/HouseholdDetail'
 import { UserManagement } from '@/pages/UserManagement'
 import { PendingAccounts } from '@/pages/PendingAccounts'
 import { CallingManagement } from '@/pages/CallingManagement'
+import { ChildRecordManagement } from '@/pages/ChildRecordManagement'
+import { ClerkCallings } from '@/pages/ClerkCallings'
+import { ClerkChildRecords } from '@/pages/ClerkChildRecords'
 
 function DefaultRedirect() {
   const { currentUser } = useAuth()
@@ -61,6 +64,30 @@ export default function App() {
                 element={
                   <ProtectedRoute requireRole="admin">
                     <CallingManagement />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/child-records"
+                element={
+                  <ProtectedRoute requireRole="admin">
+                    <ChildRecordManagement />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/clerk/callings"
+                element={
+                  <ProtectedRoute requireRole="clerk">
+                    <ClerkCallings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/clerk/child-records"
+                element={
+                  <ProtectedRoute requireRole="clerk">
+                    <ClerkChildRecords />
                   </ProtectedRoute>
                 }
               />

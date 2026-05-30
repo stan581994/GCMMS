@@ -1,13 +1,13 @@
--- callings RLS
-alter table public.callings enable row level security;
+-- child_records RLS
+alter table public.child_records enable row level security;
 
-create policy "callings_select"
-  on public.callings for select
+create policy "child_records_select"
+  on public.child_records for select
   to authenticated
   using (true);
 
-create policy "callings_insert"
-  on public.callings for insert
+create policy "child_records_insert"
+  on public.child_records for insert
   to authenticated
   with check (
     exists (
@@ -16,8 +16,8 @@ create policy "callings_insert"
     )
   );
 
-create policy "callings_update"
-  on public.callings for update
+create policy "child_records_update"
+  on public.child_records for update
   to authenticated
   using (
     exists (
@@ -26,11 +26,11 @@ create policy "callings_update"
     )
   );
 
--- clerk_tasks RLS
-alter table public.clerk_tasks enable row level security;
+-- child_record_tasks RLS
+alter table public.child_record_tasks enable row level security;
 
-create policy "clerk_tasks_select_admin"
-  on public.clerk_tasks for select
+create policy "child_record_tasks_select_admin"
+  on public.child_record_tasks for select
   to authenticated
   using (
     exists (
@@ -39,8 +39,8 @@ create policy "clerk_tasks_select_admin"
     )
   );
 
-create policy "clerk_tasks_select_clerk"
-  on public.clerk_tasks for select
+create policy "child_record_tasks_select_clerk"
+  on public.child_record_tasks for select
   to authenticated
   using (
     exists (
@@ -49,8 +49,8 @@ create policy "clerk_tasks_select_clerk"
     )
   );
 
-create policy "clerk_tasks_insert"
-  on public.clerk_tasks for insert
+create policy "child_record_tasks_insert"
+  on public.child_record_tasks for insert
   to authenticated
   with check (
     exists (
@@ -59,8 +59,8 @@ create policy "clerk_tasks_insert"
     )
   );
 
-create policy "clerk_tasks_update"
-  on public.clerk_tasks for update
+create policy "child_record_tasks_update"
+  on public.child_record_tasks for update
   to authenticated
   using (
     exists (

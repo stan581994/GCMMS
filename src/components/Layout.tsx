@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Outlet, useNavigate } from 'react-router-dom'
+import { Toaster } from 'sonner'
 import { Menu, LogOut, KeyRound } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { Sidebar } from './Sidebar'
@@ -123,6 +124,8 @@ export function Layout() {
           <Outlet />
         </main>
       </div>
+
+      <Toaster richColors position="top-right" />
 
       {/* Change Password dialog */}
       <Dialog open={pwOpen} onOpenChange={handlePwOpenChange}>

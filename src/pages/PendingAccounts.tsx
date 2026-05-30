@@ -6,6 +6,7 @@ import { isAdmin } from '@/lib/auth'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Dialog,
   DialogContent,
@@ -20,10 +21,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Search, UserPlus, CheckCircle } from 'lucide-react'
+import { Search, UserPlus, CheckCircle, Clock } from 'lucide-react'
+import { toast } from 'sonner'
+import { usePageTitle } from '@/hooks/usePageTitle'
 
 export function PendingAccounts() {
-  const { members, setPendingAccount } = useData()
+  usePageTitle('Pending Accounts')
+  const { members, loading, setPendingAccount } = useData()
   const { currentUser } = useAuth()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [search, setSearch] = useState('')
@@ -59,12 +63,31 @@ export function PendingAccounts() {
     setSearch('')
   }
 
-  const handleAccountCreated = (memberId: string) => {
+  const handleAccountCreated = (memberId: string, memberName: string) => {
     setPendingAccount(memberId, false)
+    toast.success(`Account marked as created for ${memberName}`)
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <div className="space-y-1.5">
+          <Skeleton className="h-7 w-44" />
+          <Skeleton className="h-4 w-64" />
+        </div>
+        <div className="hidden rounded-md border md:block">
+          <div className="p-4 space-y-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-10 w-full" />
+            ))}
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="space-y-4">
+    <div className="animate-in fade-in-0 duration-300 space-y-4">
       <div className="flex items-start justify-between">
         <div>
           <h2 className="text-xl font-bold">Pending Accounts</h2>
@@ -94,8 +117,11 @@ export function PendingAccounts() {
           <TableBody>
             {pendingMembers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={isAdmin(role) ? 3 : 4} className="py-10 text-center text-muted-foreground">
-                  No pending members.
+                <TableCell colSpan={isAdmin(role) ? 3 : 4} className="py-12 text-center">
+                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                    <Clock className="h-10 w-10 opacity-40" />
+                    <p className="text-sm font-medium">No pending accounts</p>
+                  </div>
                 </TableCell>
               </TableRow>
             ) : (
@@ -113,7 +139,7 @@ export function PendingAccounts() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleAccountCreated(m.id)}
+                        onClick={() => handleAccountCreated(m.id, `${m.last_name}, ${m.first_name}`)}
                       >
                         <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
                         Account Created
@@ -130,7 +156,10 @@ export function PendingAccounts() {
       {/* Mobile card list */}
       <div className="space-y-2 md:hidden">
         {pendingMembers.length === 0 ? (
-          <p className="py-8 text-center text-muted-foreground">No pending members.</p>
+          <div className="flex flex-col items-center gap-2 py-12 text-muted-foreground">
+            <Clock className="h-10 w-10 opacity-40" />
+            <p className="text-sm font-medium">No pending accounts</p>
+          </div>
         ) : (
           pendingMembers.map((m) => (
             <div
@@ -151,7 +180,7 @@ export function PendingAccounts() {
                   variant="outline"
                   size="sm"
                   className="ml-3 shrink-0"
-                  onClick={() => handleAccountCreated(m.id)}
+                  onClick={() => handleAccountCreated(m.id, `${m.last_name}, ${m.first_name}`)}
                 >
                   <CheckCircle className="mr-1 h-4 w-4 text-green-600" />
                   Done

@@ -29,6 +29,7 @@ import {
 import { Plus, BookOpen } from 'lucide-react'
 import { MemberSearchInput } from '@/components/MemberSearchInput'
 import { CALLING_POSITIONS } from '@/lib/callings'
+import { usePageTitle } from '@/hooks/usePageTitle'
 import type { Calling } from '@/types'
 
 const formatDate = (iso: string | null) =>
@@ -39,6 +40,7 @@ const formatDate = (iso: string | null) =>
 const today = new Date().toISOString().split('T')[0]
 
 export function CallingManagement() {
+  usePageTitle('Callings')
   const { members, callings, assignCalling, releaseCalling } = useData()
 
   // Assign dialog state
@@ -215,7 +217,7 @@ export function CallingManagement() {
   )
 
   return (
-    <div className="space-y-6">
+    <div className="animate-in fade-in-0 duration-300 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold">Callings</h2>

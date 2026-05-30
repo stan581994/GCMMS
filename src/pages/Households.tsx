@@ -8,6 +8,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { Home } from 'lucide-react'
+import { usePageTitle } from '@/hooks/usePageTitle'
 import type { MemberStatus } from '@/types'
 
 const statusLabel: Record<MemberStatus, string> = {
@@ -18,6 +20,7 @@ const statusLabel: Record<MemberStatus, string> = {
 }
 
 export function Households() {
+  usePageTitle('Households')
   const { households, members } = useData()
   const navigate = useNavigate()
 
@@ -33,7 +36,7 @@ export function Households() {
   })
 
   return (
-    <div className="space-y-4">
+    <div className="animate-in fade-in-0 duration-300 space-y-4">
       <div>
         <h2 className="text-xl font-bold">Households</h2>
         <p className="text-sm text-muted-foreground">{households.length} households</p>
@@ -51,7 +54,16 @@ export function Households() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {householdStats.map((h) => (
+            {householdStats.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={4} className="py-12 text-center">
+                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                    <Home className="h-10 w-10 opacity-40" />
+                    <p className="text-sm font-medium">No households found</p>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : householdStats.map((h) => (
               <TableRow
                 key={h.id}
                 className="cursor-pointer"
@@ -76,7 +88,12 @@ export function Households() {
 
       {/* Mobile card list */}
       <div className="space-y-2 md:hidden">
-        {householdStats.map((h) => (
+        {householdStats.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 py-12 text-muted-foreground">
+            <Home className="h-10 w-10 opacity-40" />
+            <p className="text-sm font-medium">No households found</p>
+          </div>
+        ) : householdStats.map((h) => (
           <button
             key={h.id}
             onClick={() => navigate(`/households/${h.id}`)}

@@ -7,6 +7,7 @@ import { StatusBadge } from '@/components/StatusBadge'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Select,
   SelectContent,
@@ -29,7 +30,9 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import { Search, ChevronUp, ChevronDown, UserPlus } from 'lucide-react'
+import { Search, ChevronUp, ChevronDown, UserPlus, Users } from 'lucide-react'
+import { toast } from 'sonner'
+import { usePageTitle } from '@/hooks/usePageTitle'
 import type { MemberStatus } from '@/types'
 
 type SortKey = 'name' | 'address' | 'status' | 'updated_at'
@@ -38,6 +41,7 @@ type SortDir = 'asc' | 'desc'
 const EMPTY_FORM = { first_name: '', last_name: '', status: 'active' as MemberStatus, address_street1: '', address_city: '', assigned_to: '' }
 
 export function Members() {
+  usePageTitle('Members')
   const { members, households, users, loading, addMember } = useData()
   const { currentUser } = useAuth()
   const navigate = useNavigate()
@@ -77,6 +81,7 @@ export function Members() {
     } else {
       setDialogOpen(false)
       setForm(EMPTY_FORM)
+      toast.success('Member added successfully')
     }
   }
 
@@ -150,14 +155,31 @@ export function Members() {
 
   if (loading) {
     return (
-      <div className="flex h-48 items-center justify-center text-muted-foreground">
-        Loading members…
+      <div className="space-y-4">
+        <div className="flex items-start justify-between gap-2">
+          <div className="space-y-1.5">
+            <Skeleton className="h-7 w-28" />
+            <Skeleton className="h-4 w-40" />
+          </div>
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Skeleton className="h-10 flex-1" />
+          <Skeleton className="h-10 w-full sm:w-40" />
+          <Skeleton className="h-10 w-full sm:w-48" />
+        </div>
+        <div className="hidden rounded-md border md:block">
+          <div className="p-4 space-y-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-10 w-full" />
+            ))}
+          </div>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-4">
+    <div className="animate-in fade-in-0 duration-300 space-y-4">
       <div className="flex items-start justify-between gap-2">
         <div>
           <h2 className="text-xl font-bold">Members</h2>
@@ -247,8 +269,11 @@ export function Members() {
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
-                  No members match your filters.
+                <TableCell colSpan={5} className="py-12 text-center">
+                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                    <Users className="h-10 w-10 opacity-40" />
+                    <p className="text-sm font-medium">No members match your filters</p>
+                  </div>
                 </TableCell>
               </TableRow>
             ) : (
@@ -277,7 +302,10 @@ export function Members() {
       {/* Mobile card list */}
       <div className="space-y-2 md:hidden">
         {filtered.length === 0 ? (
-          <p className="py-8 text-center text-muted-foreground">No members match your filters.</p>
+          <div className="flex flex-col items-center gap-2 py-12 text-muted-foreground">
+            <Users className="h-10 w-10 opacity-40" />
+            <p className="text-sm font-medium">No members match your filters</p>
+          </div>
         ) : (
           filtered.map((m) => (
             <button

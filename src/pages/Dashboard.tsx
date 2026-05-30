@@ -2,7 +2,8 @@ import { useData } from '@/context/DataContext'
 import { useAuth } from '@/context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Users, UserCheck, LogOut, ArrowRightLeft, HelpCircle, CheckCircle2, BookOpen, Baby } from 'lucide-react'
+import { Users, UserCheck, LogOut, ArrowRightLeft, HelpCircle, CheckCircle2, BookOpen, Baby, Activity } from 'lucide-react'
+import { usePageTitle } from '@/hooks/usePageTitle'
 import type { MemberStatus, ChildRecordTask } from '@/types'
 
 const STATUS_ICONS: Record<MemberStatus, React.ReactNode> = {
@@ -20,6 +21,7 @@ const STATUS_BORDER: Record<MemberStatus, string> = {
 }
 
 export function Dashboard() {
+  usePageTitle('Dashboard')
   const { members, clerkTasks, activityLog, childRecordTasks, completeTask } = useData()
   const { currentUser } = useAuth()
   const navigate = useNavigate()
@@ -54,7 +56,7 @@ export function Dashboard() {
     const pendingChildRecords = childRecordTasks.filter((t) => !t.is_complete).length
 
     return (
-      <div className="space-y-6">
+      <div className="animate-in fade-in-0 duration-300 space-y-6">
         <div>
           <h2 className="text-xl font-bold">Dashboard</h2>
           <p className="text-sm text-muted-foreground">Welcome back, {currentUser.full_name}</p>
@@ -92,7 +94,7 @@ export function Dashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="animate-in fade-in-0 duration-300 space-y-6">
       <div>
         <h2 className="text-xl font-bold">Dashboard</h2>
         <p className="text-sm text-muted-foreground">
@@ -136,7 +138,10 @@ export function Dashboard() {
         </CardHeader>
         <CardContent className="p-0">
           {activityLog.length === 0 ? (
-            <p className="px-6 py-8 text-center text-sm text-muted-foreground">No activity yet.</p>
+            <div className="flex flex-col items-center gap-2 px-6 py-10 text-muted-foreground">
+              <Activity className="h-10 w-10 opacity-40" />
+              <p className="text-sm font-medium">No activity yet</p>
+            </div>
           ) : (
             activityLog.map((entry) => (
               <div
@@ -166,7 +171,10 @@ export function Dashboard() {
         </CardHeader>
         <CardContent className="p-0">
           {recentCompletions.length === 0 ? (
-            <p className="px-6 pb-4 text-sm text-muted-foreground">No tasks completed yet.</p>
+            <div className="flex flex-col items-center gap-2 px-6 py-10 text-muted-foreground">
+              <CheckCircle2 className="h-10 w-10 opacity-40" />
+              <p className="text-sm font-medium">No tasks completed yet</p>
+            </div>
           ) : (
             recentCompletions.map((task) => (
               <div

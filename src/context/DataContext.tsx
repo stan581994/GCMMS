@@ -307,7 +307,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       .insert({ action, description, performed_by: user.id, performed_by_name: appUser?.full_name ?? '' })
       .select()
       .single()
-    if (!error && data) setActivityLog((prev) => [data as ActivityLog, ...prev.slice(0, 49)])
+    if (error) { console.error('[DataContext] logActivity error:', error); return }
+    if (data) setActivityLog((prev) => [data as ActivityLog, ...prev.slice(0, 49)])
   }
 
   const updateMember = (id: string, updates: Partial<Member>) => {
@@ -367,9 +368,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const updateUser = (id: string, updates: Partial<AppUser>) => {
     const target = users.find((u) => u.id === id)
     setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, ...updates } : u)))
+    const { full_name, role, is_active } = updates as Partial<Pick<AppUser, 'full_name' | 'role' | 'is_active'>>
+    const safeUpdates: Partial<Pick<AppUser, 'full_name' | 'role' | 'is_active'>> = {}
+    if (full_name !== undefined) safeUpdates.full_name = full_name
+    if (role !== undefined) safeUpdates.role = role
+    if (is_active !== undefined) safeUpdates.is_active = is_active
     supabase
       .from('app_users')
-      .update(updates)
+      .update(safeUpdates)
       .eq('id', id)
       .then(({ error }) => {
         if (error) console.error('[DataContext] updateUser error:', error)

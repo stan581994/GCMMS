@@ -613,6 +613,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   }
 
   const completeChildRecordTask = async (taskId: string): Promise<{ error: string | null }> => {
+    const task = childRecordTasks.find((t) => t.id === taskId)
     const now = new Date().toISOString()
     const { error } = await supabase
       .from('child_record_tasks')
@@ -624,6 +625,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setChildRecordTasks((prev) =>
       prev.map((t) => (t.id === taskId ? { ...t, is_complete: true, completed_at: now } : t))
     )
+    if (task) logActivity('Child Record Confirmed', `Clerk confirmed: ${task.description}`)
     return { error: null }
   }
 

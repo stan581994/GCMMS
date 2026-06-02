@@ -20,6 +20,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Plus, Baby } from 'lucide-react'
+import { usePageTitle } from '@/hooks/usePageTitle'
 import type { ChildRecord } from '@/types'
 
 const formatDate = (iso: string | null) =>
@@ -62,6 +63,7 @@ function SectionHeader({ title }: { title: string }) {
 }
 
 export function ChildRecordManagement() {
+  usePageTitle('Child Records')
   const { childRecords, submitChildRecord } = useData()
 
   const [open, setOpen] = useState(false)
@@ -119,7 +121,7 @@ export function ChildRecordManagement() {
   )
 
   return (
-    <div className="space-y-6">
+    <div className="animate-in fade-in-0 duration-300 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold">Child Records</h2>

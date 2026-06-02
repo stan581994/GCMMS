@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Dialog,
   DialogContent,
@@ -27,7 +28,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { UserPlus, Trash2 } from 'lucide-react'
+import { UserPlus, Trash2, UserCog } from 'lucide-react'
+import { toast } from 'sonner'
+import { usePageTitle } from '@/hooks/usePageTitle'
 import type { AppUser, UserRole } from '@/types'
 
 const roleLabels: Record<UserRole, string> = {
@@ -51,7 +54,8 @@ const addableRoles: { value: UserRole; label: string }[] = [
 ]
 
 export function UserManagement() {
-  const { users, addUser, updateUser, deleteUser } = useData()
+  usePageTitle('User Management')
+  const { users, loading, addUser, updateUser, deleteUser } = useData()
   const { currentUser } = useAuth()
   const isAdmin = currentUser?.role === 'admin'
   const [inviteOpen, setInviteOpen] = useState(false)
@@ -69,6 +73,7 @@ export function UserManagement() {
     if (!deleteTarget) return
     setDeleteError('')
     setDeleteLoading(true)
+    const name = deleteTarget.full_name
     const { error } = await deleteUser(deleteTarget.id)
     setDeleteLoading(false)
     if (error) {
@@ -76,6 +81,7 @@ export function UserManagement() {
       return
     }
     setDeleteTarget(null)
+    toast.success(`${name} was deleted`)
   }
 
   const handleDeleteOpenChange = (open: boolean) => {
@@ -97,6 +103,7 @@ export function UserManagement() {
     setNewEmail('')
     setNewPassword('GCMembers')
     setNewRole('clerk')
+    toast.success('User added successfully')
   }
 
   const handleInviteOpenChange = (open: boolean) => {
@@ -107,8 +114,28 @@ export function UserManagement() {
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="space-y-1.5">
+            <Skeleton className="h-7 w-40" />
+            <Skeleton className="h-4 w-24" />
+          </div>
+        </div>
+        <div className="hidden rounded-md border md:block">
+          <div className="p-4 space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-10 w-full" />
+            ))}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="space-y-4">
+    <div className="animate-in fade-in-0 duration-300 space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold">User Management</h2>
@@ -136,7 +163,16 @@ export function UserManagement() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {users.map((u) => (
+            {users.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="py-12 text-center">
+                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                    <UserCog className="h-10 w-10 opacity-40" />
+                    <p className="text-sm font-medium">No users yet</p>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : users.map((u) => (
               <TableRow key={u.id}>
                 <TableCell className="font-medium">{u.full_name}</TableCell>
                 <TableCell className="text-muted-foreground">{u.email}</TableCell>
@@ -185,7 +221,12 @@ export function UserManagement() {
 
       {/* Mobile card list */}
       <div className="space-y-3 md:hidden">
-        {users.map((u) => (
+        {users.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 py-12 text-muted-foreground">
+            <UserCog className="h-10 w-10 opacity-40" />
+            <p className="text-sm font-medium">No users yet</p>
+          </div>
+        ) : users.map((u) => (
           <div key={u.id} className="rounded-lg border bg-card p-4 shadow-sm">
             <div className="flex items-start justify-between">
               <div>

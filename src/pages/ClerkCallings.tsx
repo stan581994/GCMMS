@@ -11,6 +11,8 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Check, BookOpen } from 'lucide-react'
+import { toast } from 'sonner'
+import { usePageTitle } from '@/hooks/usePageTitle'
 import type { ClerkTask } from '@/types'
 
 const formatDate = (iso: string | null | undefined) =>
@@ -19,6 +21,7 @@ const formatDate = (iso: string | null | undefined) =>
     : '—'
 
 export function ClerkCallings() {
+  usePageTitle('Callings')
   const { clerkTasks, callings, members, completeTask } = useData()
 
   const [selected, setSelected] = useState<ClerkTask | null>(null)
@@ -39,6 +42,7 @@ export function ClerkCallings() {
     await completeTask(selected.id)
     setCompleting(false)
     setSelected(null)
+    toast.success('Task marked as done')
   }
 
   const TaskRow = ({ task }: { task: ClerkTask }) => {
@@ -88,7 +92,7 @@ export function ClerkCallings() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="animate-in fade-in-0 duration-300 space-y-6">
       <div>
         <h2 className="text-xl font-bold">Callings</h2>
         <p className="text-sm text-muted-foreground">

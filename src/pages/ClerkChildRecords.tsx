@@ -11,6 +11,8 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Check, Baby } from 'lucide-react'
+import { toast } from 'sonner'
+import { usePageTitle } from '@/hooks/usePageTitle'
 import type { ChildRecordTask, ChildRecord } from '@/types'
 
 const formatDate = (iso: string | null | undefined) =>
@@ -21,6 +23,7 @@ const formatDate = (iso: string | null | undefined) =>
 const yesNo = (v: boolean) => (v ? 'Yes' : 'No')
 
 export function ClerkChildRecords() {
+  usePageTitle('Child Records')
   const { childRecordTasks, childRecords, completeChildRecordTask } = useData()
 
   const [selected, setSelected] = useState<ChildRecordTask | null>(null)
@@ -38,6 +41,7 @@ export function ClerkChildRecords() {
     await completeChildRecordTask(selected.id)
     setCompleting(false)
     setSelected(null)
+    toast.success('Task marked as done')
   }
 
   const TaskRow = ({ task }: { task: ChildRecordTask }) => {
@@ -125,7 +129,7 @@ export function ClerkChildRecords() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="animate-in fade-in-0 duration-300 space-y-6">
       <div>
         <h2 className="text-xl font-bold">Child Records</h2>
         <p className="text-sm text-muted-foreground">

@@ -256,7 +256,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') fetchAll()
-      if (event === 'SIGNED_OUT') { setMembers(mockMembers); setUsers([]); setCallings([]); setClerkTasks([]); setActivityLog([]); setChildRecords([]); setChildRecordTasks([]) }
+      if (event === 'SIGNED_OUT') {
+        setMembers(mockMembers)
+        setUsers([])
+        setCallings([])
+        setClerkTasks([])
+        setActivityLog([])
+        setChildRecords([])
+        setChildRecordTasks([])
+      }
     })
 
     const taskChannel = supabase
@@ -334,6 +342,19 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         ? (users.find((u) => u.id === updates.assigned_to)?.full_name ?? updates.assigned_to)
         : 'no one'
       logActivity('Ministering Assigned', `${memberName} was assigned to ${ministerName}`)
+    }
+    if (
+      ('first_name' in updates && updates.first_name !== current.first_name) ||
+      ('last_name' in updates && updates.last_name !== current.last_name)
+    ) {
+      logActivity('Member Updated', `${memberName}'s details were updated`)
+    }
+    if ('new_address' in updates) {
+      if (updates.new_address && !current.new_address) {
+        logActivity('Address Added', `A new address was added for ${memberName}`)
+      } else if (updates.new_address && current.new_address) {
+        logActivity('Address Updated', `${memberName}'s address was updated`)
+      }
     }
 
     supabase
@@ -422,8 +443,17 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
     if (error || !data) return { error: error?.message ?? 'Failed to add member' }
 
-    setMembers((prev) => [...prev, mapDbMember(data as DbMember)])
+    const newMember = mapDbMember(data as DbMember)
+
+    // Automatically add to pending accounts so an LDS account can be created
+    const { error: pendingError } = await supabase
+      .from('pending_accounts')
+      .insert({ member_id: Number(newMember.id) })
+    if (pendingError) console.error('[DataContext] addMember pending_accounts insert error:', pendingError)
+
+    setMembers((prev) => [...prev, { ...newMember, pending_account: !pendingError }])
     logActivity('Member Added', `${input.last_name}, ${input.first_name} was added as a new member`)
+    if (!pendingError) logActivity('Pending Account Added', `${input.last_name}, ${input.first_name} was flagged for LDS Account creation`)
     return { error: null }
   }
 
@@ -542,6 +572,23 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     return { error: null }
   }
 
+  const completeTask = async (taskId: string): Promise<{ error: string | null }> => {
+    const task = clerkTasks.find((t) => t.id === taskId)
+    const now = new Date().toISOString()
+    const { error } = await supabase
+      .from('clerk_tasks')
+      .update({ is_complete: true, completed_at: now })
+      .eq('id', Number(taskId))
+
+    if (error) return { error: error.message }
+
+    setClerkTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? { ...t, is_complete: true, completed_at: now } : t))
+    )
+    if (task) logActivity('Calling Confirmed', `Clerk confirmed: ${task.description}`)
+    return { error: null }
+  }
+
   const submitChildRecord = async (input: SubmitChildRecordInput): Promise<{ error: string | null }> => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: 'Not authenticated' }
@@ -576,6 +623,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   }
 
   const completeChildRecordTask = async (taskId: string): Promise<{ error: string | null }> => {
+    const task = childRecordTasks.find((t) => t.id === taskId)
     const now = new Date().toISOString()
     const { error } = await supabase
       .from('child_record_tasks')
@@ -587,23 +635,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setChildRecordTasks((prev) =>
       prev.map((t) => (t.id === taskId ? { ...t, is_complete: true, completed_at: now } : t))
     )
-    return { error: null }
-  }
-
-  const completeTask = async (taskId: string): Promise<{ error: string | null }> => {
-    const task = clerkTasks.find((t) => t.id === taskId)
-    const now = new Date().toISOString()
-    const { error } = await supabase
-      .from('clerk_tasks')
-      .update({ is_complete: true, completed_at: now })
-      .eq('id', Number(taskId))
-
-    if (error) return { error: error.message }
-
-    setClerkTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, is_complete: true, completed_at: now } : t))
-    )
-    if (task) logActivity('Calling Confirmed', `Clerk confirmed: ${task.description}`)
+    if (task) logActivity('Child Record Confirmed', `Clerk confirmed: ${task.description}`)
     return { error: null }
   }
 

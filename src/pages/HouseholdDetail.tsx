@@ -9,8 +9,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowLeft, Save } from 'lucide-react'
+import { toast } from 'sonner'
+import { usePageTitle } from '@/hooks/usePageTitle'
 
 export function HouseholdDetail() {
+  usePageTitle('Household Detail')
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { households, members, updateHousehold } = useData()
@@ -21,7 +24,6 @@ export function HouseholdDetail() {
 
   const [name, setName] = useState(household?.name ?? '')
   const [address, setAddress] = useState(household?.address ?? '')
-  const [saved, setSaved] = useState(false)
 
   if (!household) {
     return (
@@ -39,12 +41,11 @@ export function HouseholdDetail() {
   const handleSave = () => {
     if (!fullEdit) return
     updateHousehold(household.id, { name, address })
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+    toast.success('Household details saved')
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="animate-in fade-in-0 duration-300 mx-auto max-w-2xl space-y-6">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" onClick={() => navigate('/households')}>
           <ArrowLeft className="h-4 w-4" />
@@ -75,7 +76,7 @@ export function HouseholdDetail() {
           {fullEdit && (
             <Button onClick={handleSave} className="w-full sm:w-auto">
               <Save className="mr-2 h-4 w-4" />
-              {saved ? 'Saved!' : 'Save Changes'}
+              Save Changes
             </Button>
           )}
         </CardContent>

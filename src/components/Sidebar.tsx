@@ -30,13 +30,14 @@ function PendingBadge({ count }: { count: number }) {
 
 export function Sidebar({ onClose }: SidebarProps) {
   const { currentUser } = useAuth()
-  const { clerkTasks, childRecordTasks } = useData()
+  const { clerkTasks, childRecordTasks, members } = useData()
   const isClerk = currentUser?.role === 'clerk'
   const isAccountSpecialist = currentUser?.role === 'account_specialist'
   const admin = currentUser && isAdmin(currentUser.role)
 
   const pendingCallings = clerkTasks.filter((t) => !t.is_complete).length
   const pendingChildRecords = childRecordTasks.filter((t) => !t.is_complete).length
+  const pendingAccounts = members.filter((m) => m.pending_account).length
 
   return (
     <div className="flex h-full flex-col">
@@ -78,11 +79,11 @@ export function Sidebar({ onClose }: SidebarProps) {
           <NavLink to="/pending-accounts" onClick={onClose} className={navLinkClass}>
             <Clock className="h-4 w-4 shrink-0" />
             Pending Accounts
+            {isAccountSpecialist && <PendingBadge count={pendingAccounts} />}
           </NavLink>
         )}
 
         {/* Admin nav */}
-
         {admin && (
           <NavLink to="/callings" onClick={onClose} className={navLinkClass}>
             <BookOpen className="h-4 w-4 shrink-0" />
@@ -121,7 +122,6 @@ export function Sidebar({ onClose }: SidebarProps) {
           </NavLink>
         )}
       </nav>
-
     </div>
   )
 }

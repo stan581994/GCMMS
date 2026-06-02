@@ -16,9 +16,12 @@ import {
 } from '@/components/ui/select'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowLeft, Save } from 'lucide-react'
+import { toast } from 'sonner'
+import { usePageTitle } from '@/hooks/usePageTitle'
 import type { MemberStatus } from '@/types'
 
 export function MemberDetail() {
+  usePageTitle('Member Detail')
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { updateMember, members, households, users } = useData()
@@ -34,7 +37,6 @@ export function MemberDetail() {
   const [action, setAction] = useState<string>(member?.new_address ? 'update_address' : 'none')
   const [newAddress, setNewAddress] = useState(member?.new_address ?? '')
   const ministeringUsers = users.filter((u) => u.role === 'ministering')
-  const [saved, setSaved] = useState(false)
 
   if (!member) {
     return (
@@ -60,8 +62,7 @@ export function MemberDetail() {
       ? { status, new_address, updated_by: currentUser.id }
       : { status, new_address, first_name: firstName, last_name: lastName, assigned_to, updated_by: currentUser.id }
     updateMember(member.id, updates)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+    toast.success('Member details saved')
   }
 
   const lastEditor = member.updated_by ? users.find((u) => u.id === member.updated_by) : undefined
@@ -73,7 +74,7 @@ export function MemberDetail() {
     new Date(iso).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="animate-in fade-in-0 duration-300 mx-auto max-w-2xl space-y-6">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" onClick={() => navigate('/members')}>
           <ArrowLeft className="h-4 w-4" />
@@ -184,7 +185,7 @@ export function MemberDetail() {
           {editable && (
             <Button onClick={handleSave} className="w-full sm:w-auto">
               <Save className="mr-2 h-4 w-4" />
-              {saved ? 'Saved!' : 'Save Changes'}
+              Save Changes
             </Button>
           )}
         </CardContent>

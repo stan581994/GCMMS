@@ -5,7 +5,7 @@ create table public.clerk_tasks (
   description  text        not null,
   is_complete  boolean     not null default false,
   completed_at timestamptz null,
-  created_by   uuid        not null references auth.users(id) on delete set null,
+  created_by   uuid        not null references auth.users(id) on delete restrict,
   created_at   timestamptz not null default now()
 );
 

@@ -22,7 +22,7 @@ const STATUS_BORDER: Record<MemberStatus, string> = {
 
 export function Dashboard() {
   usePageTitle('Dashboard')
-  const { members, clerkTasks, activityLog, childRecordTasks, completeTask } = useData()
+  const { members, clerkTasks, childRecordTasks, activityLog } = useData()
   const { currentUser } = useAuth()
   const navigate = useNavigate()
 

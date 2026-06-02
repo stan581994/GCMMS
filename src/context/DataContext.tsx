@@ -271,10 +271,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       .channel('clerk_tasks_updates')
       .on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'clerk_tasks' },
+        { event: '*', schema: 'public', table: 'clerk_tasks' },
         (payload) => {
-          const updated = mapDbClerkTask(payload.new as Record<string, unknown>)
-          setClerkTasks((prev) => prev.map((t) => t.id === updated.id ? updated : t))
+          if (payload.eventType === 'INSERT') {
+            const added = mapDbClerkTask(payload.new as Record<string, unknown>)
+            setClerkTasks((prev) => [added, ...prev])
+          } else if (payload.eventType === 'UPDATE') {
+            const updated = mapDbClerkTask(payload.new as Record<string, unknown>)
+            setClerkTasks((prev) => prev.map((t) => t.id === updated.id ? updated : t))
+          }
         }
       )
       .subscribe()
@@ -283,10 +288,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       .channel('child_record_tasks_updates')
       .on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'child_record_tasks' },
+        { event: '*', schema: 'public', table: 'child_record_tasks' },
         (payload) => {
-          const updated = mapDbChildRecordTask(payload.new as Record<string, unknown>)
-          setChildRecordTasks((prev) => prev.map((t) => t.id === updated.id ? updated : t))
+          if (payload.eventType === 'INSERT') {
+            const added = mapDbChildRecordTask(payload.new as Record<string, unknown>)
+            setChildRecordTasks((prev) => [added, ...prev])
+          } else if (payload.eventType === 'UPDATE') {
+            const updated = mapDbChildRecordTask(payload.new as Record<string, unknown>)
+            setChildRecordTasks((prev) => prev.map((t) => t.id === updated.id ? updated : t))
+          }
         }
       )
       .subscribe()

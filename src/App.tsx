@@ -23,6 +23,13 @@ function DefaultRedirect() {
   return <Navigate to={to} replace />
 }
 
+function DefaultRedirect() {
+  const { currentUser } = useAuth()
+  const role = currentUser?.role
+  const to = role === 'admin' || role === 'clerk' ? '/dashboard' : role === 'account_specialist' ? '/pending-accounts' : '/members'
+  return <Navigate to={to} replace />
+}
+
 export default function App() {
   return (
     <AuthProvider>

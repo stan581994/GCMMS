@@ -95,6 +95,11 @@ export function Members() {
     [users]
   )
 
+  const uniqueLastNames = useMemo(() => {
+    const names = Array.from(new Set(members.map((m) => m.last_name).filter(Boolean)))
+    return names.sort((a, b) => a.localeCompare(b))
+  }, [members])
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase()
     return members
@@ -106,7 +111,7 @@ export function Members() {
           `${m.first_name} ${m.last_name}`.toLowerCase().includes(q) ||
           assignedName.toLowerCase().includes(q)
         const matchStatus = statusFilter === 'all' || m.status === statusFilter
-        const matchHousehold = householdFilter === 'all' || m.household_id === householdFilter
+        const matchHousehold = householdFilter === 'all' || m.last_name === householdFilter
         return matchSearch && matchStatus && matchHousehold
       })
       .sort((a, b) => {
@@ -225,9 +230,9 @@ export function Members() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Households</SelectItem>
-            {households.map((h) => (
-              <SelectItem key={h.id} value={h.id}>
-                {h.name}
+            {uniqueLastNames.map((lastName) => (
+              <SelectItem key={lastName} value={lastName}>
+                {lastName}
               </SelectItem>
             ))}
           </SelectContent>

@@ -176,9 +176,9 @@ export function Dashboard() {
               <p className="text-sm font-medium">No tasks completed yet</p>
             </div>
           ) : (
-            recentCompletions.map((task) => (
+            recentCompletions.map((task, i) => (
               <div
-                key={task.id}
+                key={`${i}-${task.id}`}
                 className="flex items-start justify-between border-b px-6 py-3 last:border-0"
               >
                 <div className="min-w-0 flex-1 pr-4">

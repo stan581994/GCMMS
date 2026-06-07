@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react'
 import { mockMembers, mockHouseholds } from '@/data/mock'
 import type { Member, Household, AppUser, MemberStatus, UserRole, Calling, ClerkTask, ActivityLog, ChildRecord, ChildRecordTask } from '@/types'
 import { supabase } from '@/lib/supabase'
+import { sendCallingEmail, sendChildRecordEmail, sendPendingAccountEmail } from '@/lib/emailService'
 
 interface DbMember {
   id: number
@@ -443,7 +444,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
     setMembers((prev) => [...prev, { ...newMember, pending_account: !pendingError }])
     logActivity('Member Added', `${input.last_name}, ${input.first_name} was added as a new member`)
-    if (!pendingError) logActivity('Pending Account Added', `${input.last_name}, ${input.first_name} was flagged for LDS Account creation`)
+    if (!pendingError) {
+      logActivity('Pending Account Added', `${input.last_name}, ${input.first_name} was flagged for LDS Account creation`)
+      sendPendingAccountEmail({ memberName: `${input.last_name}, ${input.first_name}` })
+    }
     return { error: null }
   }
 
@@ -461,6 +465,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           if (error) console.error('[DataContext] setPendingAccount insert error:', error)
         })
       logActivity('Pending Account Added', `${memberName} was flagged for LDS Account creation`)
+      sendPendingAccountEmail({ memberName })
     } else {
       supabase
         .from('pending_accounts')
@@ -513,6 +518,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setCallings((prev) => [mapDbCalling(callingData as Record<string, unknown>), ...prev])
     if (taskData) setClerkTasks((prev) => [mapDbClerkTask(taskData as Record<string, unknown>), ...prev])
     logActivity('Calling Assigned', `${memberName} was called as ${input.position}`)
+    sendCallingEmail({ type: 'assigned', memberName, position: input.position, date: input.sustained_date })
 
     return { error: null }
   }
@@ -558,6 +564,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     )
     if (taskData) setClerkTasks((prev) => [mapDbClerkTask(taskData as Record<string, unknown>), ...prev])
     logActivity('Calling Released', `${memberName} was released from ${calling?.position ?? 'calling'}`)
+    sendCallingEmail({ type: 'released', memberName, position: calling?.position ?? 'calling', date: input.released_date })
 
     return { error: null }
   }
@@ -608,6 +615,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
     setChildRecords((prev) => [mapDbChildRecord(recordData as Record<string, unknown>), ...prev])
     if (taskData) setChildRecordTasks((prev) => [mapDbChildRecordTask(taskData as Record<string, unknown>), ...prev])
+    sendChildRecordEmail({ childName: input.child_name, blessingDate: input.blessing_date })
 
     return { error: null }
   }

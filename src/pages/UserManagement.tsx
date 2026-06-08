@@ -31,6 +31,7 @@ import {
 import { UserPlus, Trash2, UserCog } from 'lucide-react'
 import { toast } from 'sonner'
 import { usePageTitle } from '@/hooks/usePageTitle'
+import { sendWelcomeEmail } from '@/lib/emailService'
 import type { AppUser, UserRole } from '@/types'
 
 const roleLabels: Record<UserRole, string> = {
@@ -92,18 +93,21 @@ export function UserManagement() {
     if (!newName || !newEmail) return
     setInviteError('')
     setInviteLoading(true)
-    const { error } = await addUser(newName, newEmail, newPassword, newRole)
+    const { error, userId } = await addUser(newName, newEmail, newPassword, newRole)
     setInviteLoading(false)
     if (error) {
       setInviteError(error)
       return
+    }
+    if (userId) {
+      sendWelcomeEmail({ userId, email: newEmail, fullName: newName, role: newRole })
     }
     setInviteOpen(false)
     setNewName('')
     setNewEmail('')
     setNewPassword('GCMembers')
     setNewRole('clerk')
-    toast.success('User added successfully')
+    toast.success('User added — a welcome email has been sent')
   }
 
   const handleInviteOpenChange = (open: boolean) => {

@@ -47,7 +47,7 @@ export function Login() {
       </div>
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center">
-          <h1 className="text-2xl font-bold">Ward Member Records</h1>
+          <h1 className="text-2xl font-bold">Golden City Ward Member Records</h1>
           <p className="mt-1 text-sm text-muted-foreground">Sign in to your account</p>
         </div>
 

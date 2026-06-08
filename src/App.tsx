@@ -15,6 +15,7 @@ import { CallingManagement } from '@/pages/CallingManagement'
 import { ChildRecordManagement } from '@/pages/ChildRecordManagement'
 import { ClerkCallings } from '@/pages/ClerkCallings'
 import { ClerkChildRecords } from '@/pages/ClerkChildRecords'
+import { ConfirmAccount } from '@/pages/ConfirmAccount'
 
 function DefaultRedirect() {
   const { currentUser } = useAuth()
@@ -30,6 +31,7 @@ export default function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/confirm" element={<ConfirmAccount />} />
             <Route
               element={
                 <ProtectedRoute>

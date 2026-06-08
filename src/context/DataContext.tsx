@@ -146,7 +146,7 @@ interface DataContextType {
   updateMember: (id: string, updates: Partial<Member>) => void
   updateHousehold: (id: string, updates: Partial<Household>) => void
   updateUser: (id: string, updates: Partial<AppUser>) => void
-  addUser: (name: string, email: string, password: string, role: UserRole) => Promise<{ error: string | null }>
+  addUser: (name: string, email: string, password: string, role: UserRole) => Promise<{ error: string | null; userId?: string }>
   deleteUser: (id: string) => Promise<{ error: string | null }>
   addMember: (input: AddMemberInput) => Promise<{ error: string | null }>
   setPendingAccount: (memberId: string, value: boolean) => void
@@ -387,7 +387,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const addUser = async (name: string, email: string, password: string, role: UserRole): Promise<{ error: string | null }> => {
+  const addUser = async (name: string, email: string, password: string, role: UserRole): Promise<{ error: string | null; userId?: string }> => {
     const { data, error } = await supabase.rpc('create_managed_user', {
       p_email: email,
       p_password: password,
@@ -399,10 +399,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const created = data as { id: string; email: string }
     setUsers((prev) => [
       ...prev,
-      { id: created.id, full_name: name, email, role, is_active: true, created_at: new Date().toISOString() },
+      { id: created.id, full_name: name, email, role, is_active: false, created_at: new Date().toISOString() },
     ])
     logActivity('User Created', `New user ${name} was created with role ${role.replace('_', ' ')}`)
-    return { error: null }
+    return { error: null, userId: created.id }
   }
 
   const deleteUser = async (id: string): Promise<{ error: string | null }> => {

@@ -27,3 +27,12 @@ export function sendChildRecordEmail(payload: {
 export function sendPendingAccountEmail(payload: { memberName: string }) {
   post('/api/email/pending-account', payload)
 }
+
+export function sendWelcomeEmail(payload: {
+  userId: string
+  email: string
+  fullName: string
+  role: string
+}) {
+  post('/api/email/welcome', payload)
+}

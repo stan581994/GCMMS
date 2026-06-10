@@ -399,7 +399,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const created = data as { id: string; email: string }
     setUsers((prev) => [
       ...prev,
-      { id: created.id, full_name: name, email, role, is_active: false, created_at: new Date().toISOString() },
+      { id: created.id, full_name: name, email, role, is_active: false, must_change_password: true, created_at: new Date().toISOString() },
     ])
     logActivity('User Created', `New user ${name} was created with role ${role.replace('_', ' ')}`)
     return { error: null, userId: created.id }

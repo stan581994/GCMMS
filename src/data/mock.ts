@@ -8,6 +8,7 @@ export const mockUsers: AppUser[] = [
     role: 'admin',
     created_at: '2024-01-10T08:00:00Z',
     is_active: true,
+    must_change_password: false,
   },
   {
     id: 'user-2',
@@ -16,6 +17,7 @@ export const mockUsers: AppUser[] = [
     role: 'account_specialist',
     created_at: '2024-01-15T08:00:00Z',
     is_active: true,
+    must_change_password: false,
   },
   {
     id: 'user-3',
@@ -24,6 +26,7 @@ export const mockUsers: AppUser[] = [
     role: 'clerk',
     created_at: '2024-02-01T08:00:00Z',
     is_active: true,
+    must_change_password: false,
   },
   {
     id: 'user-4',
@@ -32,6 +35,7 @@ export const mockUsers: AppUser[] = [
     role: 'ministering',
     created_at: '2024-02-15T08:00:00Z',
     is_active: true,
+    must_change_password: false,
   },
 ]
 

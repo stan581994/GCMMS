@@ -317,6 +317,132 @@ app.post('/api/email/confirm-token', async (req, res) => {
   }
 })
 
+// Send password reset email
+app.post('/api/email/reset-password', async (req, res) => {
+  try {
+    const { email } = req.body
+    if (!email) return res.status(400).json({ ok: false, error: 'Email is required.' })
+
+    // Look up the user in app_users (only registered accounts can reset)
+    const { data: userRow, error: lookupErr } = await supabase
+      .from('app_users')
+      .select('id, full_name, is_active')
+      .eq('email', email)
+      .single()
+
+    // Always respond OK to avoid leaking which emails are registered
+    if (lookupErr || !userRow || !userRow.is_active) {
+      return res.json({ ok: true })
+    }
+
+    const token = crypto.randomUUID()
+    const { error: insertErr } = await supabase
+      .from('password_reset_tokens')
+      .insert({ token, user_id: userRow.id })
+
+    if (insertErr) throw new Error(insertErr.message)
+
+    const resetUrl = `${process.env.APP_URL || 'http://localhost:5173'}/reset-password?token=${token}`
+
+    const subject = 'Password Reset Request — GCMMS'
+    const text = `Hello ${userRow.full_name}, click the link to reset your password: ${resetUrl} (expires in 1 hour).`
+    const bodyContent = `
+      <p style="margin:0 0 16px;">Hello <strong>${userRow.full_name}</strong>,</p>
+      <p style="margin:0 0 24px;">We received a request to reset your password for the <strong>Golden City Member Management System</strong>. Click the button below to choose a new password:</p>
+
+      <table cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+        <tr>
+          <td style="border-radius:8px;background-color:#4B9EFF;">
+            <a href="${resetUrl}" target="_blank"
+               style="display:inline-block;padding:14px 32px;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:8px;letter-spacing:0.3px;">
+              Reset Password
+            </a>
+          </td>
+        </tr>
+      </table>
+
+      <p style="margin:0 0 12px;font-size:13px;color:#737B8F;">This link expires in <strong>1 hour</strong>. If you did not request a password reset, you can safely ignore this email — your password will not change.</p>
+    `
+
+    const html = buildEmailHtml({ header: 'Password Reset Request', body: bodyContent })
+    await sendMail({ to: [email], subject, html, text })
+    res.json({ ok: true })
+  } catch (err) {
+    console.error('[email] /api/email/reset-password error:', err.message)
+    res.status(500).json({ ok: false, error: err.message })
+  }
+})
+
+// Check reset token validity without consuming it (called on page load)
+app.post('/api/email/check-reset-token', async (req, res) => {
+  try {
+    const { token } = req.body
+    if (!token) return res.status(400).json({ ok: false, error: 'Token is required.' })
+
+    const { data: rec, error: fetchErr } = await supabase
+      .from('password_reset_tokens')
+      .select('used_at, expires_at')
+      .eq('token', token)
+      .single()
+
+    if (fetchErr || !rec) {
+      return res.status(400).json({ ok: false, error: 'Invalid or expired reset link.' })
+    }
+    if (rec.used_at) {
+      return res.status(400).json({ ok: false, error: 'This reset link has already been used.' })
+    }
+    if (new Date(rec.expires_at) < new Date()) {
+      return res.status(400).json({ ok: false, error: 'This reset link has expired. Please request a new one.' })
+    }
+
+    res.json({ ok: true })
+  } catch (err) {
+    console.error('[email] /api/email/check-reset-token error:', err.message)
+    res.status(400).json({ ok: false, error: err.message })
+  }
+})
+
+// Apply new password using reset token (consumes the token server-side — no client session needed)
+app.post('/api/email/apply-reset-password', async (req, res) => {
+  try {
+    const { token, password } = req.body
+    if (!token || !password) {
+      return res.status(400).json({ ok: false, error: 'Token and password are required.' })
+    }
+
+    const { data: rec, error: fetchErr } = await supabase
+      .from('password_reset_tokens')
+      .select('user_id, used_at, expires_at')
+      .eq('token', token)
+      .single()
+
+    if (fetchErr || !rec) {
+      return res.status(400).json({ ok: false, error: 'Invalid or expired reset link.' })
+    }
+    if (rec.used_at) {
+      return res.status(400).json({ ok: false, error: 'This reset link has already been used.' })
+    }
+    if (new Date(rec.expires_at) < new Date()) {
+      return res.status(400).json({ ok: false, error: 'This reset link has expired. Please request a new one.' })
+    }
+
+    // Update the password directly via service role — no client session required
+    const { error: updateErr } = await supabase.auth.admin.updateUserById(rec.user_id, { password })
+    if (updateErr) throw new Error(updateErr.message)
+
+    // Mark token as used only after the password is successfully changed
+    await supabase
+      .from('password_reset_tokens')
+      .update({ used_at: new Date().toISOString() })
+      .eq('token', token)
+
+    res.json({ ok: true })
+  } catch (err) {
+    console.error('[email] /api/email/apply-reset-password error:', err.message)
+    res.status(400).json({ ok: false, error: err.message })
+  }
+})
+
 const PORT = process.env.PORT || 3001
 app.listen(PORT, () => {
   console.log(`[email server] Running on http://localhost:${PORT}`)

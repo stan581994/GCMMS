@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Select,
   SelectContent,
@@ -30,7 +31,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import { Search, ChevronUp, ChevronDown, UserPlus, Users } from 'lucide-react'
+import { Search, ChevronUp, ChevronDown, UserPlus, Users, CheckSquare, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import type { MemberStatus } from '@/types'
@@ -42,7 +43,7 @@ const EMPTY_FORM = { first_name: '', last_name: '', status: 'active' as MemberSt
 
 export function Members() {
   usePageTitle('Members')
-  const { members, households, users, loading, addMember } = useData()
+  const { members, households, users, loading, addMember, updateMember } = useData()
   const { currentUser } = useAuth()
   const navigate = useNavigate()
 
@@ -58,6 +59,10 @@ export function Members() {
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
+
+  const [bulkMode, setBulkMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkAssignTo, setBulkAssignTo] = useState<string>('none')
 
   const handleAddMember = async () => {
     if (!form.first_name.trim() || !form.last_name.trim()) {
@@ -100,10 +105,12 @@ export function Members() {
       .filter((m) => {
         if (isMinistering && m.assigned_to !== currentUser?.id) return false
         const assignedName = m.assigned_to ? (userMap[m.assigned_to] ?? m.assigned_to) : ''
+        const address = (m.address ?? addressMap[m.household_id] ?? '').toLowerCase()
         const matchSearch =
           !q ||
           `${m.first_name} ${m.last_name}`.toLowerCase().includes(q) ||
-          assignedName.toLowerCase().includes(q)
+          assignedName.toLowerCase().includes(q) ||
+          address.includes(q)
         const matchStatus = statusFilter === 'all' || m.status === statusFilter
         return matchSearch && matchStatus
       })
@@ -129,6 +136,37 @@ export function Members() {
   useEffect(() => {
     console.log('[Members] filtered count:', filtered.length)
   }, [filtered])
+
+  const exitBulkMode = () => {
+    setBulkMode(false)
+    setSelectedIds(new Set())
+    setBulkAssignTo('none')
+  }
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filtered.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(filtered.map((m) => m.id)))
+    }
+  }
+
+  const handleBulkAssign = () => {
+    if (selectedIds.size === 0) return
+    const assignTo = bulkAssignTo === 'none' ? null : bulkAssignTo
+    selectedIds.forEach((id) => updateMember(id, { assigned_to: assignTo }))
+    const name = assignTo ? (userMap[assignTo] ?? assignTo) : 'Unassigned'
+    toast.success(`${selectedIds.size} member(s) assigned to ${name}`)
+    exitBulkMode()
+  }
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -183,19 +221,64 @@ export function Members() {
           <p className="text-sm text-muted-foreground">{filtered.length} of {members.length} members</p>
         </div>
         {userCanEdit && (
-          <Button size="sm" onClick={() => { setForm(EMPTY_FORM); setFormError(null); setDialogOpen(true) }}>
-            <UserPlus className="mr-2 h-4 w-4" />
-            Add Member
-          </Button>
+          <div className="flex gap-2">
+            {!bulkMode && (
+              <Button size="sm" variant="outline" onClick={() => setBulkMode(true)}>
+                <CheckSquare className="mr-2 h-4 w-4" />
+                Bulk Assign
+              </Button>
+            )}
+            <Button size="sm" onClick={() => { setForm(EMPTY_FORM); setFormError(null); setDialogOpen(true) }}>
+              <UserPlus className="mr-2 h-4 w-4" />
+              Add Member
+            </Button>
+          </div>
         )}
       </div>
+
+      {/* Bulk assign toolbar */}
+      {bulkMode && (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/50 px-4 py-2">
+          <span className="text-sm font-medium">
+            {selectedIds.size} selected
+          </span>
+          <div className="flex flex-1 flex-wrap items-center gap-2">
+            <Select value={bulkAssignTo} onValueChange={setBulkAssignTo}>
+              <SelectTrigger className="w-52">
+                <SelectValue placeholder="Assign to…" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">— Unassigned —</SelectItem>
+                {users
+                  .filter((u) => u.role === 'ministering' && u.is_active)
+                  .map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.full_name}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+            <Button
+              size="sm"
+              onClick={handleBulkAssign}
+              disabled={selectedIds.size === 0}
+            >
+              Assign
+            </Button>
+          </div>
+          <Button size="sm" variant="ghost" onClick={exitBulkMode}>
+            <X className="mr-1 h-4 w-4" />
+            Cancel
+          </Button>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex flex-col gap-2 sm:flex-row">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search by name or assigned person…"
+            placeholder="Search by name, address, or assigned person…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
@@ -223,6 +306,15 @@ export function Members() {
         <Table>
           <TableHeader>
             <TableRow>
+              {bulkMode && (
+                <TableHead className="w-10">
+                  <Checkbox
+                    checked={filtered.length > 0 && selectedIds.size === filtered.length}
+                    onCheckedChange={toggleSelectAll}
+                    aria-label="Select all"
+                  />
+                </TableHead>
+              )}
               <TableHead
                 className="cursor-pointer select-none"
                 onClick={() => toggleSort('name')}
@@ -253,7 +345,7 @@ export function Members() {
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="py-12 text-center">
+                <TableCell colSpan={bulkMode ? 6 : 5} className="py-12 text-center">
                   <div className="flex flex-col items-center gap-2 text-muted-foreground">
                     <Users className="h-10 w-10 opacity-40" />
                     <p className="text-sm font-medium">No members match your filters</p>
@@ -264,10 +356,23 @@ export function Members() {
               filtered.map((m) => (
                 <TableRow
                   key={m.id}
-                  className="cursor-pointer"
-                  onClick={() => navigate(`/members/${m.id}`)}
+                  className={bulkMode ? 'cursor-default' : 'cursor-pointer'}
+                  onClick={() => { if (!bulkMode) navigate(`/members/${m.id}`) }}
+                  data-selected={bulkMode && selectedIds.has(m.id) ? 'true' : undefined}
                 >
-                  <TableCell className="font-medium">
+                  {bulkMode && (
+                    <TableCell onClick={(e) => { e.stopPropagation(); toggleSelect(m.id) }}>
+                      <Checkbox
+                        checked={selectedIds.has(m.id)}
+                        onCheckedChange={() => toggleSelect(m.id)}
+                        aria-label={`Select ${m.first_name} ${m.last_name}`}
+                      />
+                    </TableCell>
+                  )}
+                  <TableCell
+                    className="font-medium"
+                    onClick={() => { if (bulkMode) toggleSelect(m.id) }}
+                  >
                     {m.last_name}, {m.first_name}
                   </TableCell>
                   <TableCell className="text-muted-foreground">{m.address ?? addressMap[m.household_id] ?? '—'}</TableCell>
@@ -294,10 +399,18 @@ export function Members() {
           filtered.map((m) => (
             <button
               key={m.id}
-              onClick={() => navigate(`/members/${m.id}`)}
-              className="flex w-full items-center justify-between rounded-lg border bg-card p-4 text-left shadow-sm hover:bg-accent/50"
+              onClick={() => bulkMode ? toggleSelect(m.id) : navigate(`/members/${m.id}`)}
+              className={`flex w-full items-center gap-3 rounded-lg border bg-card p-4 text-left shadow-sm hover:bg-accent/50 ${bulkMode && selectedIds.has(m.id) ? 'ring-2 ring-primary' : ''}`}
             >
-              <div className="min-w-0">
+              {bulkMode && (
+                <Checkbox
+                  checked={selectedIds.has(m.id)}
+                  onCheckedChange={() => toggleSelect(m.id)}
+                  onClick={(e) => e.stopPropagation()}
+                  aria-label={`Select ${m.first_name} ${m.last_name}`}
+                />
+              )}
+              <div className="min-w-0 flex-1">
                 <p className="font-medium">
                   {m.last_name}, {m.first_name}
                 </p>

@@ -2,7 +2,7 @@ import { useData } from '@/context/DataContext'
 import { useAuth } from '@/context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Users, UserCheck, LogOut, ArrowRightLeft, HelpCircle, CheckCircle2, BookOpen, Baby, Activity } from 'lucide-react'
+import { Users, UserCheck, LogOut, ArrowRightLeft, HelpCircle, CheckCircle2, BookOpen, Baby, Activity, MapPin, UserCog, BadgeCheck } from 'lucide-react'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import type { MemberStatus, ChildRecordTask } from '@/types'
 
@@ -32,6 +32,9 @@ export function Dashboard() {
     moved_out: members.filter((m) => m.status === 'moved_out').length,
     transferred: members.filter((m) => m.status === 'transferred').length,
     unknown: members.filter((m) => m.status === 'unknown').length,
+    addressUpdated: members.filter((m) => !!m.new_address).length,
+    pendingAccounts: members.filter((m) => m.pending_account).length,
+    accountsCreated: activityLog.filter((e) => e.action === 'Account Created').length,
   }
 
   const recentCompletions = [
@@ -129,6 +132,46 @@ export function Dashboard() {
             </CardContent>
           </Card>
         ))}
+      </div>
+
+      {/* Address & account stats */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <button onClick={() => navigate('/members?filter=new_address')} className="text-left">
+          <Card className="border-t-2 border-t-violet-500 hover:bg-accent/50 transition-colors cursor-pointer">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Updated Address</CardTitle>
+              <MapPin className="h-4 w-4 text-violet-500" />
+            </CardHeader>
+            <CardContent>
+              <p className="text-3xl font-bold">{counts.addressUpdated}</p>
+              <p className="text-xs text-muted-foreground">members</p>
+            </CardContent>
+          </Card>
+        </button>
+
+        <button onClick={() => navigate('/pending-accounts')} className="text-left">
+          <Card className="border-t-2 border-t-sky-500 hover:bg-accent/50 transition-colors cursor-pointer">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Pending LDS Accounts</CardTitle>
+              <UserCog className="h-4 w-4 text-sky-500" />
+            </CardHeader>
+            <CardContent>
+              <p className="text-3xl font-bold">{counts.pendingAccounts}</p>
+              <p className="text-xs text-muted-foreground">members</p>
+            </CardContent>
+          </Card>
+        </button>
+
+        <Card className="border-t-2 border-t-emerald-500">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">LDS Accounts Created</CardTitle>
+            <BadgeCheck className="h-4 w-4 text-emerald-500" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold">{counts.accountsCreated}</p>
+            <p className="text-xs text-muted-foreground">members</p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Recent updates */}

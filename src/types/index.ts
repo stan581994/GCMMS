@@ -33,6 +33,7 @@ export interface AppUser {
   role: UserRole
   created_at: string
   is_active: boolean
+  must_change_password: boolean
 }
 
 export type CallingStatus = 'active' | 'released'

@@ -63,6 +63,7 @@ export function MemberDetail() {
       : { status, new_address, first_name: firstName, last_name: lastName, assigned_to, updated_by: currentUser.id }
     updateMember(member.id, updates)
     toast.success('Member details saved')
+    navigate('/members')
   }
 
   const lastEditor = member.updated_by ? users.find((u) => u.id === member.updated_by) : undefined

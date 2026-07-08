@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react'
 import { mockMembers, mockHouseholds } from '@/data/mock'
 import type { Member, Household, AppUser, MemberStatus, UserRole, Calling, ClerkTask, ActivityLog, ChildRecord, ChildRecordTask } from '@/types'
 import { supabase } from '@/lib/supabase'
+import { sendCallingEmail, sendChildRecordEmail, sendPendingAccountEmail } from '@/lib/emailService'
 
 interface DbMember {
   id: number
@@ -145,7 +146,7 @@ interface DataContextType {
   updateMember: (id: string, updates: Partial<Member>) => void
   updateHousehold: (id: string, updates: Partial<Household>) => void
   updateUser: (id: string, updates: Partial<AppUser>) => void
-  addUser: (name: string, email: string, password: string, role: UserRole) => Promise<{ error: string | null }>
+  addUser: (name: string, email: string, password: string, role: UserRole) => Promise<{ error: string | null; userId?: string }>
   deleteUser: (id: string) => Promise<{ error: string | null }>
   addMember: (input: AddMemberInput) => Promise<{ error: string | null }>
   setPendingAccount: (memberId: string, value: boolean) => void
@@ -271,15 +272,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       .channel('clerk_tasks_updates')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'clerk_tasks' },
+        { event: 'UPDATE', schema: 'public', table: 'clerk_tasks' },
         (payload) => {
-          if (payload.eventType === 'INSERT') {
-            const added = mapDbClerkTask(payload.new as Record<string, unknown>)
-            setClerkTasks((prev) => [added, ...prev])
-          } else if (payload.eventType === 'UPDATE') {
-            const updated = mapDbClerkTask(payload.new as Record<string, unknown>)
-            setClerkTasks((prev) => prev.map((t) => t.id === updated.id ? updated : t))
-          }
+          const updated = mapDbClerkTask(payload.new as Record<string, unknown>)
+          setClerkTasks((prev) => prev.map((t) => t.id === updated.id ? updated : t))
         }
       )
       .subscribe()
@@ -288,15 +284,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       .channel('child_record_tasks_updates')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'child_record_tasks' },
+        { event: 'UPDATE', schema: 'public', table: 'child_record_tasks' },
         (payload) => {
-          if (payload.eventType === 'INSERT') {
-            const added = mapDbChildRecordTask(payload.new as Record<string, unknown>)
-            setChildRecordTasks((prev) => [added, ...prev])
-          } else if (payload.eventType === 'UPDATE') {
-            const updated = mapDbChildRecordTask(payload.new as Record<string, unknown>)
-            setChildRecordTasks((prev) => prev.map((t) => t.id === updated.id ? updated : t))
-          }
+          const updated = mapDbChildRecordTask(payload.new as Record<string, unknown>)
+          setChildRecordTasks((prev) => prev.map((t) => t.id === updated.id ? updated : t))
         }
       )
       .subscribe()
@@ -396,7 +387,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const addUser = async (name: string, email: string, password: string, role: UserRole): Promise<{ error: string | null }> => {
+  const addUser = async (name: string, email: string, password: string, role: UserRole): Promise<{ error: string | null; userId?: string }> => {
     const { data, error } = await supabase.rpc('create_managed_user', {
       p_email: email,
       p_password: password,
@@ -408,10 +399,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const created = data as { id: string; email: string }
     setUsers((prev) => [
       ...prev,
-      { id: created.id, full_name: name, email, role, is_active: true, created_at: new Date().toISOString() },
+      { id: created.id, full_name: name, email, role, is_active: false, must_change_password: true, created_at: new Date().toISOString() },
     ])
     logActivity('User Created', `New user ${name} was created with role ${role.replace('_', ' ')}`)
-    return { error: null }
+    return { error: null, userId: created.id }
   }
 
   const deleteUser = async (id: string): Promise<{ error: string | null }> => {
@@ -453,7 +444,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
     setMembers((prev) => [...prev, { ...newMember, pending_account: !pendingError }])
     logActivity('Member Added', `${input.last_name}, ${input.first_name} was added as a new member`)
-    if (!pendingError) logActivity('Pending Account Added', `${input.last_name}, ${input.first_name} was flagged for LDS Account creation`)
+    if (!pendingError) {
+      logActivity('Pending Account Added', `${input.last_name}, ${input.first_name} was flagged for LDS Account creation`)
+      sendPendingAccountEmail({ memberName: `${input.last_name}, ${input.first_name}` })
+    }
     return { error: null }
   }
 
@@ -471,6 +465,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           if (error) console.error('[DataContext] setPendingAccount insert error:', error)
         })
       logActivity('Pending Account Added', `${memberName} was flagged for LDS Account creation`)
+      sendPendingAccountEmail({ memberName })
     } else {
       supabase
         .from('pending_accounts')
@@ -523,6 +518,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setCallings((prev) => [mapDbCalling(callingData as Record<string, unknown>), ...prev])
     if (taskData) setClerkTasks((prev) => [mapDbClerkTask(taskData as Record<string, unknown>), ...prev])
     logActivity('Calling Assigned', `${memberName} was called as ${input.position}`)
+    sendCallingEmail({ type: 'assigned', memberName, position: input.position, date: input.sustained_date })
 
     return { error: null }
   }
@@ -568,6 +564,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     )
     if (taskData) setClerkTasks((prev) => [mapDbClerkTask(taskData as Record<string, unknown>), ...prev])
     logActivity('Calling Released', `${memberName} was released from ${calling?.position ?? 'calling'}`)
+    sendCallingEmail({ type: 'released', memberName, position: calling?.position ?? 'calling', date: input.released_date })
 
     return { error: null }
   }
@@ -618,6 +615,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
     setChildRecords((prev) => [mapDbChildRecord(recordData as Record<string, unknown>), ...prev])
     if (taskData) setChildRecordTasks((prev) => [mapDbChildRecordTask(taskData as Record<string, unknown>), ...prev])
+    sendChildRecordEmail({ childName: input.child_name, blessingDate: input.blessing_date })
 
     return { error: null }
   }

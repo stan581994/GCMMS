@@ -51,7 +51,6 @@ export function Members() {
 
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<MemberStatus | 'all'>('all')
-  const [householdFilter, setHouseholdFilter] = useState<string>('all')
   const [sortKey, setSortKey] = useState<SortKey>('name')
   const [sortDir, setSortDir] = useState<SortDir>('asc')
 
@@ -106,8 +105,7 @@ export function Members() {
           `${m.first_name} ${m.last_name}`.toLowerCase().includes(q) ||
           assignedName.toLowerCase().includes(q)
         const matchStatus = statusFilter === 'all' || m.status === statusFilter
-        const matchHousehold = householdFilter === 'all' || m.household_id === householdFilter
-        return matchSearch && matchStatus && matchHousehold
+        return matchSearch && matchStatus
       })
       .sort((a, b) => {
         let va: string, vb: string
@@ -126,7 +124,7 @@ export function Members() {
         }
         return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va)
       })
-  }, [members, search, statusFilter, householdFilter, sortKey, sortDir, addressMap, userMap, isMinistering, currentUser?.id])
+  }, [members, search, statusFilter, sortKey, sortDir, addressMap, userMap, isMinistering, currentUser?.id])
 
   useEffect(() => {
     console.log('[Members] filtered count:', filtered.length)
@@ -165,7 +163,6 @@ export function Members() {
         <div className="flex flex-col gap-2 sm:flex-row">
           <Skeleton className="h-10 flex-1" />
           <Skeleton className="h-10 w-full sm:w-40" />
-          <Skeleton className="h-10 w-full sm:w-48" />
         </div>
         <div className="hidden rounded-md border md:block">
           <div className="p-4 space-y-3">
@@ -217,19 +214,6 @@ export function Members() {
             <SelectItem value="moved_out">Moved Out</SelectItem>
             <SelectItem value="transferred">Transferred</SelectItem>
             <SelectItem value="unknown">Unknown</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={householdFilter} onValueChange={setHouseholdFilter}>
-          <SelectTrigger className="w-full sm:w-48">
-            <SelectValue placeholder="Household" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Households</SelectItem>
-            {households.map((h) => (
-              <SelectItem key={h.id} value={h.id}>
-                {h.name}
-              </SelectItem>
-            ))}
           </SelectContent>
         </Select>
       </div>

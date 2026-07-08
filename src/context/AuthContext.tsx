@@ -10,6 +10,7 @@ interface AuthContextType {
   logout: () => void
   switchRole: (userId: string) => void
   changePassword: (newPassword: string) => Promise<boolean>
+  clearForcePasswordChange: () => Promise<boolean>
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
@@ -95,9 +96,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return !error
   }
 
+  const clearForcePasswordChange = async (): Promise<boolean> => {
+    if (!currentUser) return false
+    const { error } = await supabase.rpc('clear_force_password_change')
+    if (error) return false
+    setCurrentUser({ ...currentUser, must_change_password: false })
+    return true
+  }
+
   return (
     <AuthContext.Provider
-      value={{ currentUser, isAuthenticated: currentUser !== null, isLoading, login, logout, switchRole, changePassword }}
+      value={{ currentUser, isAuthenticated: currentUser !== null, isLoading, login, logout, switchRole, changePassword, clearForcePasswordChange }}
     >
       {children}
     </AuthContext.Provider>

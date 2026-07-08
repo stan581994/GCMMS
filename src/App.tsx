@@ -1,8 +1,10 @@
+import React from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from '@/context/AuthContext'
 import { DataProvider } from '@/context/DataContext'
 import { Layout } from '@/components/Layout'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
+import { ForcePasswordChangeModal } from '@/components/ForcePasswordChangeModal'
 import { Login } from '@/pages/Login'
 import { Dashboard } from '@/pages/Dashboard'
 import { Members } from '@/pages/Members'
@@ -15,6 +17,8 @@ import { CallingManagement } from '@/pages/CallingManagement'
 import { ChildRecordManagement } from '@/pages/ChildRecordManagement'
 import { ClerkCallings } from '@/pages/ClerkCallings'
 import { ClerkChildRecords } from '@/pages/ClerkChildRecords'
+import { ConfirmAccount } from '@/pages/ConfirmAccount'
+import { ResetPassword } from '@/pages/ResetPassword'
 
 function DefaultRedirect() {
   const { currentUser } = useAuth()
@@ -23,13 +27,26 @@ function DefaultRedirect() {
   return <Navigate to={to} replace />
 }
 
+function ForcePasswordGate({ children }: { children: React.ReactNode }) {
+  const { currentUser } = useAuth()
+  return (
+    <>
+      {children}
+      {currentUser?.must_change_password && <ForcePasswordChangeModal />}
+    </>
+  )
+}
+
 export default function App() {
   return (
     <AuthProvider>
       <DataProvider>
+        <ForcePasswordGate>
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/confirm" element={<ConfirmAccount />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route
               element={
                 <ProtectedRoute>
@@ -94,6 +111,7 @@ export default function App() {
             </Route>
           </Routes>
         </BrowserRouter>
+        </ForcePasswordGate>
       </DataProvider>
     </AuthProvider>
   )

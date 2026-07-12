@@ -23,6 +23,7 @@ const roleLabels: Record<string, string> = {
   account_specialist: 'Specialist',
   clerk: 'Clerk',
   ministering: 'Ministering',
+  secretary: 'Secretary',
 }
 
 function initials(name: string) {

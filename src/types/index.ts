@@ -1,5 +1,5 @@
 export type MemberStatus = 'active' | 'moved_out' | 'transferred' | 'unknown'
-export type UserRole = 'admin' | 'account_specialist' | 'clerk' | 'ministering'
+export type UserRole = 'admin' | 'account_specialist' | 'clerk' | 'ministering' | 'secretary'
 
 export interface Household {
   id: string

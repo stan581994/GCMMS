@@ -12,6 +12,7 @@ interface ProtectedRouteProps {
 function roleFallback(role?: UserRole): string {
   if (role === 'account_specialist') return '/pending-accounts'
   if (role === 'clerk') return '/dashboard'
+  if (role === 'secretary') return '/callings'
   return '/members'
 }
 

@@ -23,7 +23,7 @@ import { ResetPassword } from '@/pages/ResetPassword'
 function DefaultRedirect() {
   const { currentUser } = useAuth()
   const role = currentUser?.role
-  const to = role === 'admin' || role === 'clerk' ? '/dashboard' : role === 'account_specialist' ? '/pending-accounts' : '/members'
+  const to = role === 'admin' || role === 'clerk' ? '/dashboard' : role === 'account_specialist' ? '/pending-accounts' : role === 'secretary' ? '/callings' : '/members'
   return <Navigate to={to} replace />
 }
 
@@ -63,10 +63,10 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route path="/members" element={<ProtectedRoute blockedRoles={['account_specialist']}><Members /></ProtectedRoute>} />
-              <Route path="/members/:id" element={<ProtectedRoute blockedRoles={['account_specialist']}><MemberDetail /></ProtectedRoute>} />
-              <Route path="/households" element={<ProtectedRoute blockedRoles={['account_specialist']}><Households /></ProtectedRoute>} />
-              <Route path="/households/:id" element={<ProtectedRoute blockedRoles={['account_specialist']}><HouseholdDetail /></ProtectedRoute>} />
+              <Route path="/members" element={<ProtectedRoute blockedRoles={['account_specialist', 'secretary']}><Members /></ProtectedRoute>} />
+              <Route path="/members/:id" element={<ProtectedRoute blockedRoles={['account_specialist', 'secretary']}><MemberDetail /></ProtectedRoute>} />
+              <Route path="/households" element={<ProtectedRoute blockedRoles={['account_specialist', 'secretary']}><Households /></ProtectedRoute>} />
+              <Route path="/households/:id" element={<ProtectedRoute blockedRoles={['account_specialist', 'secretary']}><HouseholdDetail /></ProtectedRoute>} />
               <Route
                 path="/users"
                 element={
@@ -79,7 +79,7 @@ export default function App() {
               <Route
                 path="/callings"
                 element={
-                  <ProtectedRoute requireRole="admin">
+                  <ProtectedRoute allowedRoles={['admin', 'secretary']}>
                     <CallingManagement />
                   </ProtectedRoute>
                 }

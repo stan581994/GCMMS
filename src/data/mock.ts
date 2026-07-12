@@ -37,6 +37,14 @@ export const mockUsers: AppUser[] = [
     is_active: true,
     must_change_password: false,
   },
+  {
+    id: 'user-5',
+    full_name: 'Lorna Magbanua',
+    email: 'secretary@ward.org',
+    role: 'secretary',
+    created_at: '2024-02-20T08:00:00Z',
+    is_active: true,
+  },
 ]
 
 export const mockHouseholds: Household[] = [

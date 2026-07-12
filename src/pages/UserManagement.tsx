@@ -39,6 +39,7 @@ const roleLabels: Record<UserRole, string> = {
   account_specialist: 'Account Specialist',
   clerk: 'Clerk',
   ministering: 'Ministering',
+  secretary: 'Secretary',
 }
 
 const roleBadgeClass: Record<UserRole, string> = {
@@ -46,12 +47,14 @@ const roleBadgeClass: Record<UserRole, string> = {
   account_specialist: 'bg-blue-100 text-blue-800 border-blue-200',
   clerk: 'bg-teal-100 text-teal-800 border-teal-200',
   ministering: 'bg-amber-100 text-amber-800 border-amber-200',
+  secretary: 'bg-rose-100 text-rose-800 border-rose-200',
 }
 
 const addableRoles: { value: UserRole; label: string }[] = [
   { value: 'account_specialist', label: 'Account Specialist' },
   { value: 'clerk', label: 'Clerk' },
   { value: 'ministering', label: 'Ministering' },
+  { value: 'secretary', label: 'Secretary' },
 ]
 
 export function UserManagement() {

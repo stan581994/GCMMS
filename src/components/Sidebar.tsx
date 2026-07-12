@@ -33,6 +33,7 @@ export function Sidebar({ onClose }: SidebarProps) {
   const { clerkTasks, childRecordTasks, members } = useData()
   const isClerk = currentUser?.role === 'clerk'
   const isAccountSpecialist = currentUser?.role === 'account_specialist'
+  const isSecretary = currentUser?.role === 'secretary'
   const admin = currentUser && isAdmin(currentUser.role)
 
   const pendingCallings = clerkTasks.filter((t) => !t.is_complete).length
@@ -68,7 +69,7 @@ export function Sidebar({ onClose }: SidebarProps) {
           </NavLink>
         )}
 
-        {!isClerk && !isAccountSpecialist && (
+        {!isClerk && !isAccountSpecialist && !isSecretary && (
           <NavLink to="/members" onClick={onClose} className={navLinkClass}>
             <Users className="h-4 w-4 shrink-0" />
             Members
@@ -83,8 +84,8 @@ export function Sidebar({ onClose }: SidebarProps) {
           </NavLink>
         )}
 
-        {/* Admin nav */}
-        {admin && (
+        {/* Admin / Secretary nav */}
+        {(admin || isSecretary) && (
           <NavLink to="/callings" onClick={onClose} className={navLinkClass}>
             <BookOpen className="h-4 w-4 shrink-0" />
             Callings

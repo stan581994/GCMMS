@@ -136,6 +136,13 @@ export function MemberDetail() {
           </div>
 
           <div className="space-y-1.5">
+            <Label>Current Address</Label>
+            <p className="text-sm min-h-[2.25rem] rounded-md border border-input bg-muted px-3 py-2 text-muted-foreground">
+              {member.address || <span className="italic">No address on record</span>}
+            </p>
+          </div>
+
+          <div className="space-y-1.5">
             <Label>Address Action</Label>
             <Select
               value={action}

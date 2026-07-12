@@ -13,6 +13,7 @@ const roleLabels: Record<string, string> = {
   account_specialist: 'Account Specialist',
   clerk: 'Clerk',
   ministering: 'Ministering',
+  secretary: 'Secretary',
 }
 
 export function RoleSwitcher() {
